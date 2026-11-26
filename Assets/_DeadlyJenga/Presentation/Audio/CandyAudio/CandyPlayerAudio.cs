@@ -11,7 +11,10 @@ namespace DeadlyJenga.CandyAudio
         Vector3 previous;bool grounded,climbing,underwater;int vaults;
         float stepTravel,nextStep,fallSpeed,airtime,nextGrunt,previousGrip,nextGripWarning;
         bool staminaObserved,staminaEmpty;
-        bool triggerWasHeld;EquipmentKind triggerKind;float nextGripBuzz;
+        bool triggerWasHeld;EquipmentKind triggerKind;float nextGripBuzz;IDamageable damageable;
+        // Approved climbing grab (25 Nov 2026), with the older plant sound as a fallback.
+        void Grab(Vector3 position,float gain,float pitch=1)
+        {if(!CandyWeaponSuite.PlayExtra("climb","grab",position,GetInstanceID()))Sound(CandySound.ClimbPlant,position,gain,pitch);}
         // Approved powerup sounds (25 Nov 2026). The effect assets are the same ones the vision tint reads.
         IAffectable effects;EffectType speedBoost,jumpBoost;
         bool Boosted(EffectType type)=>type&&effects!=null&&effects.Has(type);
@@ -56,7 +59,11 @@ namespace DeadlyJenga.CandyAudio
             ObserveStamina();
             if(!grounded&&motor.Grounded&&airtime>.1f&&nearby)
             {
-                Sound(fallSpeed>5?CandySound.LandHard:CandySound.LandSoft,p,Mathf.Clamp(.2f+fallSpeed/12,.2f,1));stepTravel=0;
+                // Approved landing weights (25 Nov 2026): soft pat, hard thump, heavy drop with candy debris.
+                string landing=fallSpeed>12?"land-heavy":fallSpeed>5?"land-hard":"land-soft";
+                if(!CandyWeaponSuite.PlayExtra("move",landing,p,GetInstanceID()))
+                    Sound(fallSpeed>5?CandySound.LandHard:CandySound.LandSoft,p,Mathf.Clamp(.2f+fallSpeed/12,.2f,1));
+                stepTravel=0;
                 if(feel)CandyFeedback.Pulse(Mathf.Clamp(.12f+fallSpeed/18,.12f,.8f),Mathf.Lerp(.05f,.16f,Mathf.Clamp01(fallSpeed/14)));
                 if(Boosted(jumpBoost)&&airtime>.35f)CandyWeaponSuite.PlayExtra("jump-powerup","land",p,GetInstanceID());
             }
@@ -64,6 +71,7 @@ namespace DeadlyJenga.CandyAudio
             {
                 Sound(CandySound.Jump,p,.45f);
                 if(feel)CandyFeedback.Pulse(.12f,.04f);
+                if(Vector3.ProjectOnPlane(d,Vector3.up).magnitude/dt>6f)CandyWeaponSuite.PlayExtra("move","whoosh",p,GetInstanceID());
                 if(Boosted(jumpBoost))CandyWeaponSuite.PlayExtra("jump-powerup","jump",p,GetInstanceID());
             }
             // Speed boost: rushing wind under movement, louder and higher as the player runs faster.
@@ -73,7 +81,7 @@ namespace DeadlyJenga.CandyAudio
             if(!motor.Grounded&&!motor.Vaulting&&!motor.Climbing){fallSpeed=Mathf.Max(fallSpeed,-motor.VerticalSpeed);airtime+=dt;}
             else{fallSpeed=0;airtime=0;}
             if(motor.VerticalSpeed<-3&&!motor.Vaulting&&!motor.Climbing&&nearby)
-                engine.Loop(CandySound.FallWind,transform,Mathf.Clamp01((-motor.VerticalSpeed-3)/16),motor.IsLocal,Mathf.Lerp(.8f,1.2f,Mathf.Clamp01(-motor.VerticalSpeed/25)));
+                CandyWeaponSuite.Loop("move","fall-wind-loop",transform,Mathf.Clamp01((-motor.VerticalSpeed-3)/16),motor.IsLocal,Mathf.Lerp(.8f,1.2f,Mathf.Clamp01(-motor.VerticalSpeed/25)));
             if(motor.Grounded&&!motor.Vaulting&&!motor.Climbing&&nearby)
             {
                 stepTravel+=Vector3.ProjectOnPlane(d,Vector3.up).magnitude;
@@ -86,21 +94,33 @@ namespace DeadlyJenga.CandyAudio
                     else cue=CandySound.FootstepSand;
                     Sound(cue,p,Mathf.Clamp(Vector3.ProjectOnPlane(d,Vector3.up).magnitude/dt/7,.15f,.65f),Mathf.Clamp(1/motor.Scale*.5f,.85f,1.2f));
                     if(Boosted(speedBoost))CandyWeaponSuite.PlayExtra("speed-powerup","footstep",p,GetInstanceID());
-                    if(feel&&ground>4.5f)CandyFeedback.Pulse(.07f,.03f);
+                    if(ground>4.5f)
+                    {
+                        CandyWeaponSuite.PlayExtra("move","sprint-step",p,GetInstanceID());
+                        if(feel)CandyFeedback.Pulse(.07f,.03f);
+                    }
                 }
             }
             if(motor.VaultCount!=vaults)
-            {vaults=motor.VaultCount;if(nearby){Sound(CandySound.VaultGrunt,p+Vector3.up*motor.Height*.8f,.65f);Sound(CandySound.ClimbPlant,p+transform.forward*.4f+Vector3.up*motor.Height,.4f);}}
+            {
+                vaults=motor.VaultCount;
+                if(nearby)
+                {
+                    Sound(CandySound.VaultGrunt,p+Vector3.up*motor.Height*.8f,.65f);
+                    CandyWeaponSuite.PlayExtra("move","whoosh",p,GetInstanceID());
+                    Grab(p+transform.forward*.4f+Vector3.up*motor.Height,.4f);
+                }
+            }
             if(motor.Climbing&&nearby)
             {
-                if(!climbing){Sound(CandySound.ClimbPlant,p+Vector3.up*motor.Height*.8f,.5f);nextGrunt=Time.time+.5f;}
+                if(!climbing){Grab(p+Vector3.up*motor.Height*.8f,.5f);nextGrunt=Time.time+.5f;}
                 for(int side=0;side<2;side++)
                 {
                     if(!motor.TryGetGrip(side==0,out var grip))continue;
                     float movement=Vector3.Distance(grip.position,gripLast[side])/dt;
                     if(movement>.1f)gripMoving[side]=true;
                     if(gripMoving[side]&&movement<.035f&&Time.time>=gripCooldown[side])
-                    {Sound(CandySound.ClimbPlant,grip.position,.45f,side==0?1.07f:.96f);gripMoving[side]=false;gripCooldown[side]=Time.time+.25f;if(feel)CandyFeedback.Hand(side==0,.28f,.05f);}
+                    {Grab(grip.position,.45f,side==0?1.07f:.96f);gripMoving[side]=false;gripCooldown[side]=Time.time+.25f;if(feel)CandyFeedback.Hand(side==0,.28f,.05f);}
                     gripLast[side]=grip.position;
                 }
                 if(Time.time>=nextGrunt&&Mathf.Abs(d.y)>.001f){Sound(CandySound.ClimbGrunt,p+Vector3.up*motor.Height*.8f,.5f);nextGrunt=Time.time+1.5f+Mathf.Abs(GetInstanceID()%5)*.15f;}
@@ -113,8 +133,19 @@ namespace DeadlyJenga.CandyAudio
             }
             if(climbing&&!motor.Climbing&&!motor.Vaulting&&nearby)
             {
-                Sound(CandySound.ClimbRelease,p+Vector3.up*motor.Height*.7f,.4f);
-                if(feel&&motor.Stamina<.02f)CandyFeedback.Pulse(.45f,.12f);
+                // Grip gave out: the approved slip; an ordinary let-go keeps the release sound.
+                bool slipped=motor.Stamina<.02f;
+                if(!slipped||!CandyWeaponSuite.PlayExtra("climb","slip",p+Vector3.up*motor.Height*.8f,GetInstanceID()))
+                    Sound(CandySound.ClimbRelease,p+Vector3.up*motor.Height*.7f,.4f);
+                if(feel&&slipped)CandyFeedback.Pulse(.45f,.12f);
+            }
+            // Critical health: the approved candy heartbeat, louder as health drops (local player only).
+            if(motor.IsLocal&&playerView!=null&&playerView.ControlledHere)
+            {
+                damageable??=GetComponent<IDamageable>();
+                float health=damageable!=null&&damageable.MaxHealth>0?damageable.Health/damageable.MaxHealth:1;
+                if(health>0&&health<.3f)
+                    CandyWeaponSuite.Loop("body","low-health-loop",transform,Mathf.Lerp(1,.45f,health/.3f),true);
             }
             var world=CandyAudioWorld.Instance;
             if(world)
