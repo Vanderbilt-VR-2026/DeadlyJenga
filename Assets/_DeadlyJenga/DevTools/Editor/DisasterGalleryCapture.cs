@@ -61,6 +61,10 @@ namespace DeadlyJenga.DevTools.Editor
         [MenuItem("Tools/Deadly Jenga/Captures/Fire Look (Play Mode)")]
         public static void RunFireBatch() => Start("Fire");
 
+        // Meteor shower and Planet Killer hitting the castle: shards, flash and dust plumes.
+        [MenuItem("Tools/Deadly Jenga/Captures/Meteor Impacts (Play Mode)")]
+        public static void RunMeteorImpactsBatch() => Start("MeteorImpacts");
+
         static void Start(string only)
         {
             SessionState.SetString(Key + "Only", only);
@@ -128,6 +132,29 @@ namespace DeadlyJenga.DevTools.Editor
             output = new CaptureOutput(only == "" ? "Disaster Gallery" : only + " Shape");
             if (only == "TsunamiSkins") { yield return SkinShots(session); DemoDisasters.StopAll(session); yield break; }
             if (only == "RainSkins") { yield return RainSkinShots(session); DemoDisasters.StopAll(session); yield break; }
+            if (only == "MeteorImpacts")
+            {
+                foreach (var meteorName in new[] { "MeteorShower", "PlanetKillerMeteor" })
+                {
+                    var meteorPrefab = DemoDisasters.Prefabs.FirstOrDefault(p => p.name == meteorName);
+                    if (!meteorPrefab) continue;
+                    DemoDisasters.StopAll(session); session.ResetMap();
+                    yield return new WaitForSecondsRealtime(1.5f);
+                    var meteorParameters = DemoDisasters.Parameters(meteorPrefab);
+                    for (int i = 0; i < meteorParameters.Count; i++) if (meteorParameters[i].id == "warning") DemoDisasters.SetValue(session, meteorPrefab, i, 0);
+                    File.AppendAllText(Report, "Impacts-" + meteorName + ": " + DemoDisasters.Request(session, meteorPrefab) + "\n");
+                    var world = Services.World; float r = Mathf.Max(world.Radius, 8);
+                    bool planet = meteorName == "PlanetKillerMeteor";
+                    yield return new WaitForSecondsRealtime(planet ? 2f : 3f);
+                    for (int moment = 0; moment < (planet ? 8 : 6); moment++)
+                    {
+                        float distance = planet ? r * 7 : r * 2.6f;
+                        View(session, "Impacts-" + meteorName + "-" + moment, world.Center + new Vector3(.65f, .45f, -1).normalized * distance, world.Center + Vector3.up * world.TopHeight * .35f, planet ? 60 : 62);
+                        yield return new WaitForSecondsRealtime(planet ? 1f : .7f);
+                    }
+                }
+                DemoDisasters.StopAll(session); yield break;
+            }
             if (only == "IceMeteors")
             {
                 CandyDisasterVisuals.MeteorSkinOverride = CandyDisasterVisuals.MeteorSkin.Ice;

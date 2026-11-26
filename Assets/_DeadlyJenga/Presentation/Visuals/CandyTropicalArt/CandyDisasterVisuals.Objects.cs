@@ -139,7 +139,8 @@ namespace DeadlyJenga.CandyArt
         }
         void Burst(Vector3 position,DisasterPoint point,bool planet)
         {
-            int count=planet?72:12;
+            int count=planet?120:20;
+            AddImpact(position,point.size,planet);
             for(int i=0;i<count;i++)
             {
                 float a=Hash(point.id*97+i)*Mathf.PI*2,y=.22f+Hash(i+point.id*21)*.85f;
@@ -171,11 +172,12 @@ namespace DeadlyJenga.CandyArt
                 if(t>=1){fragments.RemoveAt(i);continue;}
                 Vector3 p=fragment.position+fragment.velocity*age+Vector3.down*(4.9f*age*age);
                 float fade=1-Mathf.SmoothStep(0,1,Mathf.InverseLerp(.65f,1,t));
-                (fragment.candy?candyChips:chips).Add(Matrix4x4.TRS(p,Quaternion.Euler(fragment.seed+age*140,age*100,fragment.seed),Vector3.one*fragment.size*fade));
+                var fragmentMatrix=Matrix4x4.TRS(p,Quaternion.Euler(fragment.seed+age*140,age*100,fragment.seed),Vector3.one*fragment.size*fade);
+                if(fragment.candy)candyChips.Add(fragmentMatrix);else(ShardList((int)fragment.seed)??chips).Add(fragmentMatrix);
                 if(!fragment.candy && i%3==0)Puff(dustPuffs,fragment.position+fragment.velocity*(age*.25f)+Vector3.up*age,fragment.size*(3+age*2)*fade,fragment.size*(3+age*2)*fade,fragment.seed);
             }
             MeteorMaterials(out var rockLook,out var chipLook,out var trailLook,out var trailSmokeLook);
-            DrawObjects(stones,rock,rockLook);DrawObjects(chips,rock,chipLook);
+            DrawObjects(stones,rock,rockLook);DrawObjects(chips,rock,chipLook);RenderImpacts(chipLook);
             DrawObjects(candyChips,shard,shardMaterial);
             DrawObjects(acidStreaks,quad,rainMaterial?rainMaterial:acid);RenderRainLandings();DrawObjects(smokePuffs,quad,trailSmokeLook);DrawObjects(dustPuffs,quad,dust);DrawObjects(flames,quad,trailLook);
             DrawObjects(windPuffs,quad,stormMist);DrawObjects(stormBolts,quad,stormFlash);
@@ -472,7 +474,7 @@ namespace DeadlyJenga.CandyArt
             }
             RainLandings(f,skin);
         }
-        void ClearObjects(){meteorLooks.Clear();fragments.Clear();landings.Clear();lastTornado=null;ReleaseTornadoDepth();}
-        void DestroyObjects(){DestroyRainSkins();DestroyMeteorSkins();foreach(var m in new[]{stone,chipMaterial,smoke,flame,dust,storm,stormMist,stormRibbon,stormFlash,acid,gravityBubble,tornadoSpray,tornadoFoam,tornadoRemnants})if(m)Destroy(m);if(rock)Destroy(rock);if(quad)Destroy(quad);if(stormNoise)Destroy(stormNoise);if(stormRibbons)Destroy(stormRibbons);}
+        void ClearObjects(){meteorLooks.Clear();fragments.Clear();landings.Clear();impacts.Clear();lastTornado=null;ReleaseTornadoDepth();}
+        void DestroyObjects(){DestroyRainSkins();DestroyMeteorSkins();DestroyImpacts();foreach(var m in new[]{stone,chipMaterial,smoke,flame,dust,storm,stormMist,stormRibbon,stormFlash,acid,gravityBubble,tornadoSpray,tornadoFoam,tornadoRemnants})if(m)Destroy(m);if(rock)Destroy(rock);if(quad)Destroy(quad);if(stormNoise)Destroy(stormNoise);if(stormRibbons)Destroy(stormRibbons);}
     }
 }
