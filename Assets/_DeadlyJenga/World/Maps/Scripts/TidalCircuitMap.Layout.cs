@@ -340,7 +340,7 @@ namespace DeadlyJenga.CastlePrototype
             var heading = yaw * Vector3.forward;
             var center = V(x, 0, z);
             float length = 5.62f * depthScale;
-            float offset = length / 2 + 1.65f;
+            float offset = length / 2 + 1.95f;
             string south = name + " south landing", north = name + " north landing";
             var near = center - heading * offset;
             var far = center + heading * offset;

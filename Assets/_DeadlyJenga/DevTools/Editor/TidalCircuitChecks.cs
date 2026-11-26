@@ -122,8 +122,9 @@ namespace DeadlyJenga.DevTools.Editor
             var driver=new Driver();
             player.externallyDriven=true;player.InputDriver=driver;
             var hinges=map.GetComponentsInChildren<HingeJoint>();
-            Check(map.Blocks.Count(b=>!b.isKinematic)==hinges.Length,"intact structure has only seven independently simulated bodies; colliders="+map.GetComponentsInChildren<Collider>().Length);
-            Check(hinges.Length==7,"seven independent machine bodies; bodies="+map.Blocks.Count);
+            string unseated=string.Join(", ",map.Blocks.Where(b=>!b.isKinematic && !b.GetComponent<HingeJoint>()).Select(b=>b.name));
+            Check(map.Blocks.Count(b=>!b.isKinematic)==hinges.Length,"intact structure has only seven independently simulated bodies; colliders="+map.GetComponentsInChildren<Collider>().Length+(unseated.Length>0?" unseated=["+unseated+"]":""));
+            Check(hinges.Length==7,"seven independent machine bodies; bodies="+map.Blocks.Count+" hinges="+hinges.Length);
             yield return Shot("01-wide", new Vector3(-4,54,-129), new Vector3(0,4.7f,1.4f), true);
             yield return Shot("02-drum", new Vector3(-32,4.45f,-22), Body("Tread drum").position);
             yield return Shot("03-teeters", new Vector3(-31,7.4f,4.5f), Body("Teeter panel 0").position);
