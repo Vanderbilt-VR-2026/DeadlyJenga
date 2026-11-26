@@ -100,6 +100,6 @@ namespace DeadlyJenga.DevTools.Editor
         }
 
         static bool SamePose(Rigidbody body, CastleLanProtocol.Pose pose) =>
-            (body.position - pose.position).sqrMagnitude < .000001f && Quaternion.Angle(body.rotation, pose.rotation) < .05f;
+            (body.transform.position - pose.position).sqrMagnitude < .000001f && Quaternion.Angle(body.transform.rotation, pose.rotation) < .05f;
     }
 }
