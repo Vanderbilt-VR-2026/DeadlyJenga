@@ -147,73 +147,73 @@ namespace DeadlyJenga.CastlePrototype
             Add("Hub lower", 0, -2, 2.7f, 21, 12);
             Add("Hub middle", 0, -0.6f, 6.25f, 17, 9, "Hub lower");
             Add("Hub crown", -0.5f, 0.25f, 9.65f, 10.5f, 5.3f, "Hub middle");
-            Add("Near west elbow", -12, -9, 2.5f, 4.7f, 4);
-            Add("Near east elbow", 11, -10, 2.4f, 5.3f, 4.2f);
-            Add("Inner west", -18, -5.5f, 3.1f, 5.3f, 3.2f);
+            Add("Near west elbow", -13.2f, -9, 2.5f, 4.7f, 4);
+            Add("Near east elbow", 12.0f, -10.4f, 2.7f, 5.3f, 4.2f);
+            Add("Inner west", -19.2f, -5.5f, 2.85f, 5.3f, 3.2f);
             Add("Inner east", 16, -4, 4.4f, 4.5f, 3.3f);
-            Add("Hub rear entry", -4, 7.2f, 5.3f, 5.4f, 3.1f);
-            Add("Hub rear crown access", 4, 7.6f, 7.8f, 4.8f, 3.2f);
-            Add("Under hub landing", 6, -10.8f, 1.24f, 5, 3.2f);
+            Add("Hub rear entry", -4.7f, 7.2f, 5.3f, 5.4f, 3.1f);
+            Add("Hub rear crown access", 4.3f, 7.6f, 7.8f, 4.8f, 3.2f);
+            Add("Under hub landing", 5.5f, -15.0f, 1.24f, 5, 3.2f);
             Path("Near west elbow", "Inner west", "Hub lower", "Inner east");
             Path("Hub rear entry", "Hub rear crown access", "Hub crown");
-            Path("Under hub landing", "Near east elbow", "Hub lower");
 
-            Add("West drum deck", -33, -21.6f, 1.35f, 6.6f, 3.6f);
-            Add("West water bend", -40, -15.2f, 1.2f, 4.6f, 3.25f);
-            Add("West lower tower", -41, -8.8f, 2.48f, 4, 3);
-            Add("West middle landing", -39, -3.3f, 3.45f, 5, 3.1f);
-            Add("West teeter foot", -37, 3.9f, 3.5f, 4.6f, 3.15f);
-            Add("West back tower", -38, 11.6f, 6.2f, 5.3f, 3.1f);
+            Add("West drum deck", -40.5f, -28.5f, 1.35f, 6.6f, 3.6f);
+            Add("West water bend", -40.5f, -12.8f, 1.2f, 4.0f, 3.6f);
+            Add("West lower tower", -42, -6.3f, 2.48f, 4, 3);
+            Add("West middle landing", -40, -0.8f, 3.45f, 5, 3.1f);
+            Add("West teeter foot", -41.5f, 4.6f, 3.6f, 4.6f, 3.15f);
+            Add("West back tower", -40.5f, 16.5f, 5.0f, 5.3f, 3.1f);
             Add("Near west island", -23.7f, -22, 1.25f, 6.4f, 3.5f);
-            Add("Near west turn", -15.9f, -21, 1.3f, 7, 3);
+            Add("Near west turn", -15.9f, -22.0f, 1.4f, 7, 3);
             Add("Near center west", -7.3f, -20, 1.65f, 6.7f, 3.3f);
             Add("Near center", 0.5f, -18.4f, 1.46f, 4.8f, 3.4f);
             Add("Near center east", 8, -19.5f, 1.3f, 6.2f, 3.7f);
             Add("East foreground deck", 17.5f, -21.8f, 1.25f, 6.9f, 3.45f);
             Add("East shoreline link", 26.2f, -21, 1.43f, 6.2f, 3.2f);
-            Add("East low corner", 34.1f, -18.4f, 1.35f, 5.2f, 3.1f);
-            Add("East low bend", 39.4f, -14, 2.18f, 4.5f, 3.4f);
-            Add("East rim", 40, -8.4f, 3.8f, 4.3f, 4.6f);
-            Add("East mid tower", 37.4f, -1.5f, 4.22f, 4.4f, 3.1f);
+            Add("East low corner", 40.8f, -23.8f, 1.35f, 5.2f, 3.1f);
+            Add("East low bend", 41.7f, -17.9f, 2.9f, 4.0f, 3.4f);
+            Add("East rim", 42, -9, 3.7f, 4.3f, 4.6f);
+            Add("East mid tower", 40.6f, -1.0f, 4.22f, 4.4f, 3.1f);
             Add("East water tower", 39.3f, 6.3f, 4.4f, 4.8f, 3.3f);
-            Add("East high turn", 36.3f, 13, 6.48f, 4.5f, 3.2f);
+            Add("East high turn", 37.8f, 13.0f, 6.14f, 4.5f, 3.2f);
             Path("West back tower", "West teeter foot", "West middle landing", "West lower tower", "West water bend", "West drum deck", "Near west island", "Near west turn", "Near center west", "Near center", "Near center east", "East foreground deck", "East shoreline link", "East low corner", "East low bend", "East rim", "East mid tower", "East water tower", "East high turn");
 
-            Add("West gallery", -20, 12.5f, 7.7f, 5.3f, 4.5f);
-            Add("West stair tower", -14.4f, 16.4f, 6.4f, 4.1f, 3.2f);
-            Add("Back west low", -14, 22.5f, 6.15f, 4.5f, 3.1f);
-            Add("Back west crown", -15.3f, 25.9f, 9.5f, 4.75f, 3.2f);
-            Add("Back center low", -5.5f, 25.6f, 7.15f, 4.4f, 3.1f);
-            Add("Back center crown", -5, 30.8f, 10.1f, 5.6f, 3.2f);
+            Add("West gallery", -17.0f, 11.6f, 5.6f, 5.3f, 4.5f);
+            Add("West stair tower", -14.0f, 17.0f, 6.4f, 4.1f, 3.2f);
+            Add("Back west low", -14, 22.5f, 6.4f, 4.5f, 3.1f);
+            Add("Back west crown", -15.0f, 29.8f, 9.2f, 4.75f, 3.2f);
+            Add("Back center low", -5.5f, 24.6f, 7.15f, 4.4f, 3.1f);
+            Add("Back center crown", -5, 31.8f, 9.8f, 5.6f, 3.2f);
             Add("Back east link", 3.8f, 26, 7.8f, 4.2f, 3.2f);
-            Add("Back east crown", 10.6f, 26.7f, 10.1f, 5.05f, 3.6f);
-            Add("Back right crossover", 16.7f, 24.2f, 7.3f, 4.8f, 3.2f);
-            Add("Back right tower", 22.6f, 18.9f, 6.7f, 4.8f, 3.25f);
-            Add("East gallery", 20.8f, 9.9f, 7.45f, 4.9f, 3.7f);
-            Add("West inner landing", -22.1f, 1.9f, 4.7f, 4.3f, 3.4f);
+            Add("Back east crown", 12.0f, 29.5f, 9.6f, 5.05f, 3.6f);
+            Add("Back right crossover", 16.0f, 22.6f, 7.3f, 4.8f, 3.2f);
+            Add("Back right tower", 21.4f, 22.0f, 7.3f, 4.8f, 3.25f);
+            Add("East gallery", 17.4f, 10.2f, 6.14f, 4.9f, 3.7f);
+            Add("West inner landing", -19.6f, 0.8f, 4.4f, 4.3f, 3.4f);
             Add("West low link", -29.6f, 1.6f, 2.05f, 5.3f, 3);
-            Add("West middle island", -24.2f, -7.5f, 2.5f, 4.8f, 3.5f);
-            Add("West return stair", -14.9f, -14.6f, 1.58f, 5.5f, 3.5f);
-            Add("East inner island", 18.2f, -11.2f, 2, 5.25f, 3.4f);
+            Add("West middle island", -25.3f, -5.0f, 2.5f, 4.8f, 3.5f);
+            Add("West return stair", -16.8f, -17.7f, 1.75f, 5.5f, 3.5f);
+            Add("East inner island", 18.2f, -10.6f, 2.2f, 5.25f, 3.4f);
             Add("East lower island", 14.5f, -16.1f, 1.59f, 4.8f, 3.3f);
-            Add("East route seat", 22.4f, -5.1f, 4.17f, 4.05f, 3.1f);
-            Add("East near stair", 22.9f, -11.4f, 2.47f, 4.5f, 3.1f);
+            Add("East route seat", 22.0f, -3.6f, 4.17f, 3.6f, 3.1f);
             Add("Near hub path", -4.5f, -13.4f, 1.45f, 4.1f, 3.5f);
-            Add("West upper elbow", -8.7f, 3, 6.25f, 4.2f, 3.1f);
-            Add("East upper elbow", 8.3f, 2.1f, 6.25f, 4.3f, 3.1f);
-            Path("West gallery", "West stair tower", "Back west low", "Back west crown", "Back center low", "Back center crown", "Back east link", "Back east crown", "Back right crossover", "Back right tower", "East gallery", "East high turn");
-            Path("Near west turn", "West return stair", "Near west elbow", "West middle island", "West low link", "West middle landing");
+            Add("West upper elbow", -12.7f, 3, 6.25f, 4.2f, 3.1f);
+            Add("East upper elbow", 12.75f, 2.1f, 6.25f, 4.3f, 3.1f);
+            Path("West gallery", "West stair tower", "Back west low", "Back west crown", "Back center low", "Back center crown", "Back east link", "Back east crown", "Back right crossover", "Back right tower");
+            Path("Near west turn", "West return stair", "Near west elbow");
+            Path("Inner west", "West middle island", "West low link", "West middle landing");
             Path("West low link", "West inner landing", "West gallery");
-            Path("Near center west", "Near hub path", "Under hub landing", "East lower island", "East inner island", "East near stair", "East route seat", "East mid tower");
-            Join("West gallery", "West upper elbow", 3.35f, graded: false);
+            Path("Near center west", "Near hub path", "Under hub landing", "East lower island", "East inner island", "East route seat");
+            Path("East lower island", "Near east elbow", "Hub lower");
             Join("East upper elbow", "East gallery", 3.35f, graded: false);
-            Join("West inner landing", "Hub rear entry");
+            Join("West inner landing", "West upper elbow");
+            Join("West upper elbow", "Hub middle", 2.8f, graded: false);
+            Join("East upper elbow", "Hub middle", 2.8f, graded: false);
+            Join("Hub middle", "Hub rear entry");
             Join("Hub rear crown access", "Back center low", 2.1f);
-            Join("East gallery", "East mid tower", 2.3f);
 
             // The elbows share the middle deck edge. The spine reaches both upper tiers.
             Path("Back west low", "Back center low", "Back east link", "Back right crossover");
-            Join("Hub rear entry", "Hub middle");
             Join("Near west elbow", "Hub lower");
             Join("Near west turn", "Near hub path");
             Join("East foreground deck", "East lower island");
@@ -272,10 +272,10 @@ namespace DeadlyJenga.CastlePrototype
         void BuildMachines()
         {
             Drum();
-            Bank("Teeter", -29.4f, 10, 10.3f, 2, 6.8f, 1.18f, 5.82f,
+            Bank("Teeter", -29.4f, 10, 10.3f, 2, 6.8f, 1.18f, 4.35f,
                 "West teeter foot", "West back tower", "West gallery");
-            Bank("Tipping ramp", 31.1f, -10.5f, 9.7f, 3, 5, 1.34f, 5.85f,
-                "East low corner", "East route seat", "East mid tower");
+            Bank("Tipping ramp", 31.1f, -10.5f, 9.7f, 3, 5, 1.34f, 4.35f,
+                "East low bend", "East route seat", "East mid tower");
             Sweeper();
         }
 
@@ -327,14 +327,9 @@ namespace DeadlyJenga.CastlePrototype
 
                 var arrival = center + heading * (4.95f * side);
                 string name = "Drum boarding " + side;
-                Add(name, arrival.x, arrival.z, side < 0 ? 3.2f : 4.8f, 3.95f, 3.8f);
-                Join(name, side < 0 ? "West drum deck" : "West middle island");
-                var bypass = center - axis * 6.45f + heading * (3.15f * side);
-                string detour = "Drum bypass " + side;
-                Add(detour, bypass.x, bypass.z, 2.9f, 2.4f, 2.7f);
-                Join(name, detour, 1.85f);
+                Add(name, arrival.x, arrival.z, 4.99f, 3.95f, 3.8f);
+                Join(name, side < 0 ? "West water bend" : "West return stair");
             }
-            Join("Drum bypass -1", "Drum bypass 1", 2);
         }
 
         void Bank(string name, float x, float z, float angle, int count, float spacing,
@@ -395,11 +390,13 @@ namespace DeadlyJenga.CastlePrototype
                 Add(name, x, z + i * depth, top, width, depth);
                 if (i == 0) core = routeSeats[name].Deck;
             }
-            Add("Sweeper west landing", 19.1f, 13.4f, top, 4.1f, 2.9f);
-            Add("Sweeper low landing", 24.2f, 6.25f, 4.05f, 4.5f, 3.3f);
+            Add("Sweeper west landing", 19.0f, 14.6f, top, 4.1f, 2.9f);
+            Add("Sweeper low landing", 23.5f, 2.6f, 4.05f, 4.5f, 3.3f);
+            Join("Back right tower", "Sweeper west landing");
             Join("East gallery", "Sweeper west landing");
-            Join("East mid tower", "Sweeper low landing");
+            Join("Sweeper low landing", "East water tower");
             Join("Sweeper west landing", "Sweeper deck 0", 2.5f);
+            Join("Sweeper deck 0", "East high turn", 2.5f);
             Join("Sweeper low landing", "Sweeper deck -4");
             var axle = Unit("Sweeper axle", V(x, top + .38f, z), Box(Vector3.zero, V(1.28f, .76f, 1.28f), Purple));
             core.Supported.Add(axle);
