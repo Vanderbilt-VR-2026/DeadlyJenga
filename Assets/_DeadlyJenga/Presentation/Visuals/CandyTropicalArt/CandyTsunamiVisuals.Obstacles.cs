@@ -16,6 +16,8 @@ namespace DeadlyJenga.CandyArt
     public sealed partial class CandyTsunamiVisuals
     {
         const int GridX = 128, GridY = 64, MaxContacts = 8;
+        // Raised for each splash column (world point, 0..1 strength) so the audio can play a slam there.
+        public static event System.Action<Vector3, float> SplashContact;
         Texture2D obstacleTexture;
         Color32[] obstaclePixels;
         RenderTexture rippleA, rippleB;
@@ -176,6 +178,7 @@ namespace DeadlyJenga.CandyArt
             for (int c = 0; c < contactCount; c++)
             {
                 float s = contactStrength[c];
+                SplashContact?.Invoke(contactPoint[c], s);
                 for (int k = 0; k < 9; k++)
                 {
                     int seed = emissionSeed++;

@@ -9,6 +9,12 @@ namespace DeadlyJenga.CandyAudio
     {
         public static CandyAudioCue Find(CandySound sound)
         {
+            if (CandyTsunamiSounds.Contains(sound))
+            {
+                var tsunami = new Dictionary<CandySound, CandyAudioCue>();
+                CandyTsunamiSounds.AddDefaults(tsunami);
+                if (tsunami.TryGetValue(sound, out var recordedWave)) return recordedWave;
+            }
             if (CandyMeteorSounds.Contains(sound))
             {
                 var meteor = new Dictionary<CandySound, CandyAudioCue>();
@@ -31,6 +37,7 @@ namespace DeadlyJenga.CandyAudio
         {
             Add(CandyBreathing.Sounds, CandyBreathing.DefaultCue);
             CandyMeteorSounds.AddDefaults(cues);
+            CandyTsunamiSounds.AddDefaults(cues);
             Add(CandyDisasterSounds.Sounds, CandyDisasterSounds.DefaultCue);
             Add(CandyWeaponSounds.Sounds, CandyWeaponSounds.DefaultCue);
             Add(CandyJaguarSounds.Sounds, CandyJaguarSounds.DefaultCue);
