@@ -67,6 +67,7 @@ namespace DeadlyJenga.DevTools.Editor
                 for (int index = 0; index < replica.Bodies.Count; index++)
                 {
                     var body = replica.Bodies[index];
+                    body.transform.SetPositionAndRotation(received.blocks[index].position, received.blocks[index].rotation);
                     body.position = received.blocks[index].position;
                     body.rotation = received.blocks[index].rotation;
                     body.gameObject.SetActive(received.active[index]);
