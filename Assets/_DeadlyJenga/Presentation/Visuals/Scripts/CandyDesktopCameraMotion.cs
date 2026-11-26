@@ -109,8 +109,9 @@ namespace DeadlyJenga.Presentation
 
         void BeforeCamera(ScriptableRenderContext context, Camera camera)
         {
-            if (view == null || camera != view.ViewCamera || camera.stereoEnabled) return;
+            if (view == null || camera.cameraType != CameraType.Game || camera != view.ViewCamera || view.IsVR || camera.stereoEnabled) return;
             if (offset.sqrMagnitude < 1e-8f && Quaternion.Angle(tilt, Quaternion.identity) < .01f) return;
+            if (shifted && shifted != camera) shifted.ResetWorldToCameraMatrix();
             var eye = camera.transform.localToWorldMatrix * Matrix4x4.TRS(offset, tilt, Vector3.one);
             camera.worldToCameraMatrix = Matrix4x4.Scale(new Vector3(1, 1, -1)) * eye.inverse;
             shifted = camera;

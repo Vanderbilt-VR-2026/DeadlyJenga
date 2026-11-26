@@ -96,7 +96,7 @@ namespace DeadlyJenga.Presentation
             Add(new Vector2(250,-125),()=>"Recalibrate seated height",()=>Settings?.RecalibrateSeatedHeight());
             Add(new Vector2(-250,-210), LookDirectionLabel, CycleLookDirection);
             Add(new Vector2(130,-210),()=>SprintHold?"Sprint / Hold":"Sprint / Toggle",ToggleSprintMode,224);
-            Add(new Vector2(370,-210),()=>SeatedPitch?"Vertical look / On":"Vertical look / Off",ToggleSeatedPitch,224);
+            Add(new Vector2(370,-210),()=>IsVrView?(SeatedPitch?"Vertical look / On":"Vertical look / Off"):(CameraMotion?"Camera motion / On":"Camera motion / Off"),()=> { if (IsVrView) ToggleSeatedPitch(); else ToggleCameraMotion(); },224);
             bindings=Label("",new Vector2(0,-287),new Vector2(980,74),19);
             feedback=Label("",new Vector2(0,-340),new Vector2(980,30),20);
             Add(new Vector2(-250,-390),()=>home?"Back to Home":"Back",Close);
@@ -126,8 +126,17 @@ namespace DeadlyJenga.Presentation
             PlayerPrefs.SetInt(y, next >> 1);
         }
         const string SeatedPitchKey = "SurvivorVR.SeatedDualPitch";
+        bool IsVrView => home ? homeVr : session?.IsVR == true;
         static bool SeatedPitch => PlayerPrefs.GetInt(SeatedPitchKey,0)!=0;
         static bool SprintHold => PlayerPrefs.GetInt("SurvivorVR.SprintHold",0)!=0;
+        static bool CameraMotion => PlayerPrefs.GetInt(CandyDesktopCameraMotion.PrefKey, 1) != 0;
+
+        void ToggleCameraMotion()
+        {
+            PlayerPrefs.SetInt(CandyDesktopCameraMotion.PrefKey, CameraMotion ? 0 : 1);
+            PlayerPrefs.Save();
+            nextSample=0;
+        }
 
         void ToggleSprintMode()
         {
