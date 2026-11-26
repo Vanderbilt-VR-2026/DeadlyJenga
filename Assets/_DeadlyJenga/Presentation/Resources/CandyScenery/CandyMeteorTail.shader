@@ -8,7 +8,7 @@ Shader "Candy Tropical/Meteor Tail"
         Tags {"RenderPipeline"="UniversalPipeline" "Queue"="Transparent+7" "RenderType"="Transparent"}
         Pass
         {
-            Blend SrcAlpha One   // additive-leaning: the plume glows over the sky
+            Blend SrcAlpha One, Zero One   // additive-leaning: the plume glows over the sky without corrupting dest alpha
             ZWrite Off Cull Off
             HLSLPROGRAM
             #pragma vertex vert
@@ -16,7 +16,9 @@ Shader "Candy Tropical/Meteor Tail"
             #pragma multi_compile_instancing
             #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Core.hlsl"
             TEXTURE2D(_TailAtlas); SAMPLER(sampler_TailAtlas);
+            CBUFFER_START(UnityPerMaterial)
             float4 _TailTint; float _Fps,_Glow;
+            CBUFFER_END
             struct A {float4 positionOS:POSITION;float2 uv:TEXCOORD0;UNITY_VERTEX_INPUT_INSTANCE_ID};
             struct V {float4 positionCS:SV_POSITION;float2 uv:TEXCOORD0;float seed:TEXCOORD1;UNITY_VERTEX_OUTPUT_STEREO};
             V vert(A i)
@@ -26,12 +28,13 @@ Shader "Candy Tropical/Meteor Tail"
                 float3 origin=TransformObjectToWorld(float3(0,0,0));o.seed=frac(dot(origin,float3(.131,.271,.193)));
                 return o;
             }
-            half4 Cell(float2 uv,float frame){float k=fmod(frame,8);float2 cell=float2(fmod(k,2),3-floor(k/2));return SAMPLE_TEXTURE2D(_TailAtlas,sampler_TailAtlas,(cell+saturate(uv)*.996+.002)/float2(2,4));}
+            half4 Cell(float2 uv,uint k){k&=7u;float2 cell=float2(k&1u,3u-(k>>1u));return SAMPLE_TEXTURE2D(_TailAtlas,sampler_TailAtlas,(cell+saturate(uv)*.996+.002)/float2(2,4));}
             half4 frag(V i):SV_Target
             {
                 UNITY_SETUP_STEREO_EYE_INDEX_POST_VERTEX(i);
-                float frame=_Time.y*_Fps+i.seed*8,blend=frac(frame);
-                half4 c=lerp(Cell(i.uv,floor(frame)),Cell(i.uv,floor(frame)+1),blend);
+                float phase=frac((_Time.y*_Fps)/8.0+i.seed)*8.0;
+                uint k0=min((uint)floor(phase),7u),k1=(k0+1u)&7u;
+                half4 c=lerp(Cell(i.uv,k0),Cell(i.uv,k1),frac(phase));
                 float3 rgb=c.rgb*_TailTint.rgb*_Glow;
                 return half4(rgb,c.a*_TailTint.a);
             }

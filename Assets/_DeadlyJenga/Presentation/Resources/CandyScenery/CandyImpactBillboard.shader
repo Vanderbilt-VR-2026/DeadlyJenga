@@ -16,7 +16,9 @@ Shader "Candy Tropical/Impact Billboard"
             #pragma multi_compile_instancing
             #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Core.hlsl"
             TEXTURE2D(_BlastAtlas); SAMPLER(sampler_BlastAtlas);
+            CBUFFER_START(UnityPerMaterial)
             float _Glow;
+            CBUFFER_END
             struct A {float4 positionOS:POSITION;float2 uv:TEXCOORD0;UNITY_VERTEX_INPUT_INSTANCE_ID};
             struct V {float4 positionCS:SV_POSITION;float2 uv:TEXCOORD0;float age:TEXCOORD1;UNITY_VERTEX_OUTPUT_STEREO};
             V vert(A i)
@@ -26,12 +28,13 @@ Shader "Candy Tropical/Impact Billboard"
                 o.age=saturate(length(float3(UNITY_MATRIX_M._m02,UNITY_MATRIX_M._m12,UNITY_MATRIX_M._m22)));
                 return o;
             }
-            half4 Cell(float2 uv,float k){k=clamp(k,0,15);float2 cell=float2(fmod(k,4),3-floor(k/4));return SAMPLE_TEXTURE2D(_BlastAtlas,sampler_BlastAtlas,(cell+saturate(uv)*.996+.002)/4);}
+            half4 Cell(float2 uv,uint k){k=min(k,15u);float2 cell=float2(k&3u,3u-(k>>2u));return SAMPLE_TEXTURE2D(_BlastAtlas,sampler_BlastAtlas,(cell+saturate(uv)*.996+.002)/4);}
             half4 frag(V i):SV_Target
             {
                 UNITY_SETUP_STEREO_EYE_INDEX_POST_VERTEX(i);
-                float frame=i.age*15.0,blend=frac(frame);
-                half4 c=lerp(Cell(i.uv,floor(frame)),Cell(i.uv,floor(frame)+1),blend);
+                float frame=saturate(i.age)*15.0;
+                uint k0=min((uint)floor(frame),15u),k1=min(k0+1u,15u);
+                half4 c=lerp(Cell(i.uv,k0),Cell(i.uv,k1),frac(frame));
                 float hot=saturate(max(c.r,c.g)*1.2-c.b);
                 float fade=1-smoothstep(.8,1,i.age);
                 return half4(c.rgb*lerp(1,_Glow,hot),c.a*fade);

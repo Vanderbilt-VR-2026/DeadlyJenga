@@ -33,7 +33,9 @@ namespace DeadlyJenga.CandyArt
             float length = size * (planet ? 6f : 8f), width = size * (planet ? 2.2f : 1.7f);
             Vector3 centre = position - dir * (length * .5f - size * .55f);   // the head sits just in front of the rock
             Vector3 toCamera = (camera.transform.position - centre).normalized;
-            Vector3 up = Vector3.Cross(toCamera, dir); if (up.sqrMagnitude < .0001f) up = Vector3.Cross(Vector3.up, dir);
+            Vector3 up = Vector3.Cross(toCamera, dir);
+            if (up.sqrMagnitude < .0001f) up = Vector3.Cross(Vector3.up, dir);
+            if (up.sqrMagnitude < .0001f) up = Vector3.Cross(Vector3.right, dir);
             up.Normalize(); Vector3 normal = Vector3.Cross(dir, up);
             var m = new Matrix4x4();
             m.SetColumn(0, dir * length); m.SetColumn(1, up * width); m.SetColumn(2, normal); m.SetColumn(3, new Vector4(centre.x, centre.y, centre.z, 1));
