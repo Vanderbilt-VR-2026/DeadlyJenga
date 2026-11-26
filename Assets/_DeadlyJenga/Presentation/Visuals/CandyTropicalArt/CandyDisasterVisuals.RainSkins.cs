@@ -119,7 +119,7 @@ namespace DeadlyJenga.CandyArt
                 {
                     // Low fog that spreads, drifts a little and thins out by shrinking in height.
                     float grow = Mathf.SmoothStep(0, 1, Mathf.Min(1, t * 2.5f));
-                    float width = landing.size * (.5f + grow * 1.1f), height = landing.size * .42f * (1 - t * .7f) * grow;
+                    float width = landing.size * (.5f + grow * 1.1f), height = landing.size * .85f * (1 - t * .6f) * grow;   // a full low bank, not a flat streak
                     var drift = new Vector3(Mathf.Sin(landing.seed * 1.7f), 0, Mathf.Cos(landing.seed * 2.3f)) * t * 1.2f;
                     Puff(landingPuffs, landing.position + drift + Vector3.up * height * .32f, width, height, 0);
                 }
