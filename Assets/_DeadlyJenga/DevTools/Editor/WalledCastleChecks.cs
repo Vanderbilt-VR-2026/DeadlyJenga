@@ -119,11 +119,11 @@ namespace DeadlyJenga.DevTools.Editor
             var routes = new Travel();
             BotObjectives.Current = routes;
             var journeys = new[] {
-                (new Vector3(0,0,-21.5f),new Vector3(0,.9f,-25.45f)),
+                (new Vector3(0,0,-37.7f),new Vector3(0,.9f,-34.55f)),
                 (new Vector3(-20.7f,0,-16.6f),new Vector3(-20.7f,3,-25.6f)),
                 (new Vector3(20.7f,0,-16.6f),new Vector3(20.7f,3,-25.6f)),
                 (new Vector3(0,0,-18.8f),new Vector3(0,.9f,-13)),
-                (new Vector3(-5.9f,0,13.0f),new Vector3(-5.9f,4.8f,20.1f)),
+                (new Vector3(-5.9f,0.25f,14.3f),new Vector3(-5.9f,4.8f,20.1f)),
                 (new Vector3(3.9f,12.0f,17.5f),new Vector3(5.0f,14.1f,14.1f)),
             };
             var bots = new List<CastleBotBrain>();
