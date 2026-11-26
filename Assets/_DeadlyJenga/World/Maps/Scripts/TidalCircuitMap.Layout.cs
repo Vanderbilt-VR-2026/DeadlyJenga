@@ -340,7 +340,7 @@ namespace DeadlyJenga.CastlePrototype
             var heading = yaw * Vector3.forward;
             var center = V(x, 0, z);
             float length = 5.62f * depthScale;
-            float offset = length / 2 + 2.15f;
+            float offset = length / 2 + 2.45f;
             string south = name + " south landing", north = name + " north landing";
             var near = center - heading * offset;
             var far = center + heading * offset;
@@ -374,6 +374,7 @@ namespace DeadlyJenga.CastlePrototype
                     Box(heading * (-length * .42f) + V(0, .18f, 0), V(width * .87f, .12f, .35f), Yellow, yaw),
                     Box(heading * (length * .42f) + V(0, .18f, 0), V(width * .87f, .12f, .35f), Yellow, yaw));
                 Hinge(panel, mount, hingePoint, axis, 15, 0);
+                panel.GetComponent<MayhemStructuralMember>().StructuralLoad = null;
                 var panelCols = panel.GetComponent<MayhemStructuralMember>().Shapes;
                 var mountCols = mount.GetComponent<MayhemStructuralMember>().Shapes;
                 foreach (var pc in panelCols)
