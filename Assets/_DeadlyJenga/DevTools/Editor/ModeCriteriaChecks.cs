@@ -31,7 +31,7 @@ namespace DeadlyJenga.DevTools.Editor
                 {
                     var defaults=ModeSimulation.Defaults(mode);
                     Check(ModeFrameValidation.Rules(defaults),mode+" defaults are valid");
-                    Check(defaults.automaticDisasters==(mode==GameModeKind.Demo||mode==GameModeKind.Survival),mode+" deliberate disaster default");
+                    Check(defaults.automaticDisasters==(mode==GameModeKind.Survival),mode+" deliberate disaster default");
                     Check(CandyHudContent.LiveStandings(mode)==(mode==GameModeKind.KingOfHill),mode+" focused live standings");
                     Check(!string.IsNullOrEmpty(CandyHudContent.ResultStats(new MatchPlayerFrame(),mode)),mode+" result detail");
                 }
