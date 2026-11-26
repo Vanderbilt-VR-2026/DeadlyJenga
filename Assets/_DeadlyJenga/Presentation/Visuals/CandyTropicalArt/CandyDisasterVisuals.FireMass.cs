@@ -53,7 +53,9 @@ namespace DeadlyJenga.CandyArt
                 float size = Mathf.Clamp(Mathf.Max(bounds.size.x, bounds.size.z), 1f, 6f);
                 float height = size * 3.4f, width = height * .5f;   // the flipbook cell is 1:2
                 var bottom = new Vector3(bounds.center.x, bounds.min.y - .1f, bounds.center.z);
-                fireMasses.Add(Matrix4x4.TRS(bottom + Vector3.up * height * .5f, upright, new Vector3(width, height, 1)));
+                // Nudge slightly toward the camera so the block's own front face doesn't depth-fade out the flame base.
+                var center = bottom + Vector3.up * height * .5f - facing.normalized * (size * .45f);
+                fireMasses.Add(Matrix4x4.TRS(center, upright, new Vector3(width, height, 1)));
                 fireMassCentres.Add(bounds.center);
             }
             if (fireMasses.Count > 0) DrawObjects(fireMasses, quad, fireMassMaterial);
