@@ -98,6 +98,7 @@ namespace DeadlyJenga.CastlePrototype.Editor
                     if(hazard is BasicDisaster basic)
                     {
                         Step(hazard,5);var f=basic.Capture();
+                        if(f.kind=="Tornado")for(int step=0;step<900&&(exposed.impulse-before).sqrMagnitude<=0;step++)Step(hazard,1);
                         Require(f!=null&&DisasterStates.Active.Contains(basic),prefab.name+" publishes its visual state");
                         if(f.kind=="Fire"){Step(hazard,200);Require(basic.Capture().blocks.Length>1,"Fire spreads beyond its single seed through block contact");}
                         else if(f.kind=="Icey")
