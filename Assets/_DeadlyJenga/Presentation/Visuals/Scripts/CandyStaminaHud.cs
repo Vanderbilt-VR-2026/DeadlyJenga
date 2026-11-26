@@ -67,8 +67,10 @@ namespace DeadlyJenga.CastlePrototype
             health.Sample(player, match?.Rules?.healthEnabled == true, dt);
             string action = (motor as IPlayableCharacter)?.StatusText;
             bool running = action == "SPRINTING";
-            UpdateDesktopSprint(view, session as Component, running && !motor.Climbing && !motor.Vaulting, dt);
-            bool comfortSprint = view.IsVR && (running || action == "CLIMB SPRINT");
+            // A fast freefall reuses the sprint look: edge streaks and widen on PC, the soft comfort edge in VR.
+            bool falling = !motor.Grounded && !motor.Climbing && !motor.Vaulting && motor.VerticalSpeed < -6f;
+            UpdateDesktopSprint(view, session as Component, running && !motor.Climbing && !motor.Vaulting || falling, dt);
+            bool comfortSprint = view.IsVR && (running || action == "CLIMB SPRINT" || falling);
             float sand = player?.sinking == true && !motor.Climbing && !motor.Vaulting
                 ? Mathf.Lerp(.08f, 1, Mathf.Clamp01(player.sinkProgress)) : 0;
             var target = new Vector4(TargetOpacity(motor.Climbing, motor.Stamina, false), health.Damage, comfortSprint ? 1 : 0, sand);

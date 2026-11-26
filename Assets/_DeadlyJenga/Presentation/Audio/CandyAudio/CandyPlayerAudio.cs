@@ -11,7 +11,7 @@ namespace DeadlyJenga.CandyAudio
         Vector3 previous;bool grounded,climbing,underwater;int vaults;
         float stepTravel,nextStep,fallSpeed,airtime,nextGrunt,previousGrip,nextGripWarning;
         bool staminaObserved,staminaEmpty;
-        bool triggerWasHeld;EquipmentKind triggerKind;
+        bool triggerWasHeld;EquipmentKind triggerKind;float nextGripBuzz;
         // Approved powerup sounds (25 Nov 2026). The effect assets are the same ones the vision tint reads.
         IAffectable effects;EffectType speedBoost,jumpBoost;
         bool Boosted(EffectType type)=>type&&effects!=null&&effects.Has(type);
@@ -36,6 +36,8 @@ namespace DeadlyJenga.CandyAudio
             var p=transform.position;var d=p-previous;previous=p;float dt=Mathf.Max(.001f,Time.deltaTime);
             if(d.magnitude>4){stepTravel=0;fallSpeed=0;airtime=0;grounded=motor.Grounded;Sound(CandySound.Respawn,p,.45f);return;}
             bool nearby=CandyAudioWorld.Near(p,70);
+            // VR controller buzz for the local player only (desktop has no haptic device, so this is a no-op there).
+            bool feel=motor.IsLocal&&playerView!=null&&playerView.ControlledHere&&playerView.IsVR;
             var actor=GetComponent<IModeActor>();var weapon=actor!=null?(MatchRuntime.Current as IEquipmentRuntime)?.EquipmentFor(actor.ActorId):null;
             bool held=nearby&&actor?.Alive==true&&weapon?.triggerHeld==true&&weapon.drawn;
             var heldKind=weapon?.kind??EquipmentKind.None;
@@ -55,11 +57,13 @@ namespace DeadlyJenga.CandyAudio
             if(!grounded&&motor.Grounded&&airtime>.1f&&nearby)
             {
                 Sound(fallSpeed>5?CandySound.LandHard:CandySound.LandSoft,p,Mathf.Clamp(.2f+fallSpeed/12,.2f,1));stepTravel=0;
+                if(feel)CandyFeedback.Pulse(Mathf.Clamp(.12f+fallSpeed/18,.12f,.8f),Mathf.Lerp(.05f,.16f,Mathf.Clamp01(fallSpeed/14)));
                 if(Boosted(jumpBoost)&&airtime>.35f)CandyWeaponSuite.PlayExtra("jump-powerup","land",p,GetInstanceID());
             }
             if(grounded&&!motor.Grounded&&motor.VerticalSpeed>2&&!motor.Vaulting&&nearby)
             {
                 Sound(CandySound.Jump,p,.45f);
+                if(feel)CandyFeedback.Pulse(.12f,.04f);
                 if(Boosted(jumpBoost))CandyWeaponSuite.PlayExtra("jump-powerup","jump",p,GetInstanceID());
             }
             // Speed boost: rushing wind under movement, louder and higher as the player runs faster.
@@ -82,6 +86,7 @@ namespace DeadlyJenga.CandyAudio
                     else cue=CandySound.FootstepSand;
                     Sound(cue,p,Mathf.Clamp(Vector3.ProjectOnPlane(d,Vector3.up).magnitude/dt/7,.15f,.65f),Mathf.Clamp(1/motor.Scale*.5f,.85f,1.2f));
                     if(Boosted(speedBoost))CandyWeaponSuite.PlayExtra("speed-powerup","footstep",p,GetInstanceID());
+                    if(feel&&ground>4.5f)CandyFeedback.Pulse(.07f,.03f);
                 }
             }
             if(motor.VaultCount!=vaults)
@@ -95,12 +100,22 @@ namespace DeadlyJenga.CandyAudio
                     float movement=Vector3.Distance(grip.position,gripLast[side])/dt;
                     if(movement>.1f)gripMoving[side]=true;
                     if(gripMoving[side]&&movement<.035f&&Time.time>=gripCooldown[side])
-                    {Sound(CandySound.ClimbPlant,grip.position,.45f,side==0?1.07f:.96f);gripMoving[side]=false;gripCooldown[side]=Time.time+.25f;}
+                    {Sound(CandySound.ClimbPlant,grip.position,.45f,side==0?1.07f:.96f);gripMoving[side]=false;gripCooldown[side]=Time.time+.25f;if(feel)CandyFeedback.Hand(side==0,.28f,.05f);}
                     gripLast[side]=grip.position;
                 }
                 if(Time.time>=nextGrunt&&Mathf.Abs(d.y)>.001f){Sound(CandySound.ClimbGrunt,p+Vector3.up*motor.Height*.8f,.5f);nextGrunt=Time.time+1.5f+Mathf.Abs(GetInstanceID()%5)*.15f;}
             }
-            if(climbing&&!motor.Climbing&&!motor.Vaulting&&nearby)Sound(CandySound.ClimbRelease,p+Vector3.up*motor.Height*.7f,.4f);
+            // Low grip: a quickening rumble while hanging on with little stamina left; a jolt if the grip gives out.
+            if(feel&&motor.Climbing&&motor.Stamina<.25f&&Time.time>=nextGripBuzz)
+            {
+                float remaining=motor.Stamina/.25f;nextGripBuzz=Time.time+Mathf.Lerp(.18f,.45f,remaining);
+                CandyFeedback.Pulse(Mathf.Lerp(.35f,.1f,remaining),.04f);
+            }
+            if(climbing&&!motor.Climbing&&!motor.Vaulting&&nearby)
+            {
+                Sound(CandySound.ClimbRelease,p+Vector3.up*motor.Height*.7f,.4f);
+                if(feel&&motor.Stamina<.02f)CandyFeedback.Pulse(.45f,.12f);
+            }
             var world=CandyAudioWorld.Instance;
             if(world)
             {
