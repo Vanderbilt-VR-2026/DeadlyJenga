@@ -83,7 +83,7 @@ namespace DeadlyJenga.DevTools.Editor
         static IEnumerator FollowRoute(string label,CastleSurvivor player,Driver driver,params Vector3[] points)
         {
             driver.direction=Vector3.zero;
-            player.Teleport(points[0]+Vector3.up*.08f,Quaternion.identity);
+            player.Teleport(points[0]+Vector3.up*.25f,Quaternion.identity);
             yield return new WaitForSeconds(.25f);
             for(int i=1;i<points.Length;i++)
             {

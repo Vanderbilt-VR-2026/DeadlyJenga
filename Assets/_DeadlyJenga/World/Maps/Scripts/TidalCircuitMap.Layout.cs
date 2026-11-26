@@ -250,7 +250,7 @@ namespace DeadlyJenga.CastlePrototype
             joint.connectedBody=mount.Body;
             joint.anchor=rotor.transform.InverseTransformPoint(transform.TransformPoint(pivot));
             joint.axis=rotor.transform.InverseTransformDirection(transform.TransformDirection(axis));
-            joint.breakForce=limit>0?25000:4000; joint.breakTorque=limit>0?25000:4000;
+            joint.breakForce=limit>0?float.PositiveInfinity:4000; joint.breakTorque=limit>0?float.PositiveInfinity:4000;
             if(limit>0)
             {
                 joint.useLimits=true;
