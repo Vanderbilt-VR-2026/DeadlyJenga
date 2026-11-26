@@ -11,7 +11,7 @@ namespace DeadlyJenga.CandyAudio
         Vector3 previous;bool grounded,climbing,underwater;int vaults;
         float stepTravel,nextStep,fallSpeed,airtime,nextGrunt,previousGrip,nextGripWarning;
         bool staminaObserved,staminaEmpty;
-        bool triggerWasHeld;EquipmentKind triggerKind;float nextGripBuzz;IDamageable damageable;
+        bool triggerWasHeld;EquipmentKind triggerKind;float nextGripBuzz,nextBreath,nextHeal,lastHealth,nextHurt;IDamageable damageable;
         // Approved climbing grab (25 Nov 2026), with the older plant sound as a fallback.
         void Grab(Vector3 position,float gain,float pitch=1)
         {if(!CandyWeaponSuite.PlayExtra("climb","grab",position,GetInstanceID()))Sound(CandySound.ClimbPlant,position,gain,pitch);}
@@ -54,7 +54,17 @@ namespace DeadlyJenga.CandyAudio
             if(motor.IsLocal&&!motor.InputPaused&&motorBehaviour.isActiveAndEnabled&&CandyAudioEngine.WaveImmersion<.3f)
             {
                 var breath=CandyBreathing.State(motor.Climbing,motor.Stamina);
-                if(breath.HasValue)engine.Loop(breath.Value,transform,staminaBreathingVolume*Mathf.Lerp(.55f,1,1-motor.Stamina),true,voicePitch);
+                // Approved goofy small-creature breaths (25 Nov 2026): one breath at a time, faster and heavier
+                // as grip runs out. The older breathing loop stays as the fallback.
+                bool exhausted=breath==CandySound.BreathExhausted;
+                bool breathing=breath.HasValue&&(motor.Climbing||exhausted||motor.Stamina<.7f);
+                if(breathing&&Time.time>=nextBreath)
+                {
+                    string kind=exhausted||motor.Stamina<.3f?"breath-heavy":"breath-light";
+                    if(CandyWeaponSuite.PlayExtra("stamina",kind,p+Vector3.up*motor.Height*.85f,GetInstanceID()))
+                        nextBreath=Time.time+(exhausted?.8f:motor.Climbing?1.15f:1.45f)*UnityEngine.Random.Range(.9f,1.1f);
+                    else engine.Loop(breath.Value,transform,staminaBreathingVolume*Mathf.Lerp(.55f,1,1-motor.Stamina),true,voicePitch);
+                }
             }
             ObserveStamina();
             if(!grounded&&motor.Grounded&&airtime>.1f&&nearby)
@@ -146,7 +156,14 @@ namespace DeadlyJenga.CandyAudio
                 float health=damageable!=null&&damageable.MaxHealth>0?damageable.Health/damageable.MaxHealth:1;
                 if(health>0&&health<.3f)
                     CandyWeaponSuite.Loop("body","low-health-loop",transform,Mathf.Lerp(1,.45f,health/.3f),true);
+                // Healing: the fizzy candy body re-forming, at most once a second while health climbs.
+                if(lastHealth>0&&health>lastHealth+.005f&&Time.time>=nextHeal)
+                {nextHeal=Time.time+1;CandyWeaponSuite.PlayExtra("body","heal",p+Vector3.up*motor.Height*.6f,GetInstanceID());}
+                lastHealth=health;
             }
+            // Sliding down a block face while holding on.
+            if(nearby&&motor.Climbing&&motor.VerticalSpeed<-1.2f)
+                CandyWeaponSuite.Loop("move","slide-loop",transform,Mathf.Clamp01((-motor.VerticalSpeed-1.2f)/5+.35f),motor.IsLocal);
             var world=CandyAudioWorld.Instance;
             if(world)
             {
@@ -166,7 +183,8 @@ namespace DeadlyJenga.CandyAudio
             if(staminaObserved)
             {
                 if(empty&&!staminaEmpty)CandySoundSuite.Local(CandySound.StaminaEmpty);
-                else if(!empty&&staminaEmpty)CandySoundSuite.Local(CandySound.StaminaUsable);
+                else if(!empty&&staminaEmpty&&!CandyWeaponSuite.PlayExtra("stamina","recover",transform.position+Vector3.up*motor.Height*.85f,GetInstanceID()))
+                    CandySoundSuite.Local(CandySound.StaminaUsable);
                 else if(!empty&&motor.Stamina<.22f&&previousGrip>=.22f&&Time.unscaledTime>=nextGripWarning)
                 {
                     CandySoundSuite.Local(CandySound.StaminaLow);
@@ -176,8 +194,15 @@ namespace DeadlyJenga.CandyAudio
             staminaEmpty=empty;
             staminaObserved=true;
         }
-        void OnEnable(){GameEvents.Emoted+=OnEmoted;GameEvents.EffectStarted+=OnEffectStarted;GameEvents.EffectEnded+=OnEffectEnded;}
-        void OnDisable(){GameEvents.Emoted-=OnEmoted;GameEvents.EffectStarted-=OnEffectStarted;GameEvents.EffectEnded-=OnEffectEnded;}
+        void OnEnable(){GameEvents.Emoted+=OnEmoted;GameEvents.EffectStarted+=OnEffectStarted;GameEvents.EffectEnded+=OnEffectEnded;GameEvents.Damaged+=OnDamaged;}
+        void OnDisable(){GameEvents.Emoted-=OnEmoted;GameEvents.EffectStarted-=OnEffectStarted;GameEvents.EffectEnded-=OnEffectEnded;GameEvents.Damaged-=OnDamaged;}
+        // Approved candy-mayhem hits (25 Nov 2026): crack, splinter, squelch and sprinkles; heavy adds a syrup splat.
+        void OnDamaged(GameObject who,float amount)
+        {
+            if(who!=gameObject||amount<=0||float.IsNaN(amount)||!CandyAudioWorld.Near(transform.position,70)||Time.time<nextHurt)return;
+            nextHurt=Time.time+.15f;
+            CandyWeaponSuite.PlayExtra("body",amount>=25?"hurt-heavy":"hurt-light",transform.position+Vector3.up*motor.Height*.6f,GetInstanceID());
+        }
         void OnEffectStarted(GameObject who,EffectType type)
         {
             if(who!=gameObject||!type||!CandyAudioWorld.Near(transform.position,70))return;
