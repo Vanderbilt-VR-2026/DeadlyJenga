@@ -142,8 +142,8 @@ namespace DeadlyJenga.DevTools.Editor
                 Shot("22-faceoff-camp",new Vector3(1,2.38f,-20),new Vector3(-9,10,-6),64);
                 Shot("24-expansion-tower-east",new Vector3(72,20,-34),new Vector3(48,14,-4),56);
                 Shot("25-expansion-bronto-west",new Vector3(-28,22,-26),new Vector3(-53,10,7),56);
-                float worst=map.Blocks.Select((b,i)=>Vector3.Distance(b.position,initial[i])).Max();
-                Check(worst<.7f,"unloaded maximum body travel "+worst);
+                float maxDrift=map.Blocks.Select((b,i)=>Vector3.Distance(b.position,initial[i])).Max();
+                Check(maxDrift<.7f,"unloaded maximum body travel "+maxDrift);
                 foreach(string expName in new[]{"Shark skull and upper teeth","Pterodactyl torso","Pterodactyl cradle","Brontosaurus skull","Egg nest"})
                 {
                     var expBody=bodies.FirstOrDefault(b=>b.name==expName);
