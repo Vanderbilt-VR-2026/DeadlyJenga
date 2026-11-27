@@ -163,7 +163,10 @@ namespace DeadlyJenga.CastlePrototype.Editor
                 var sliders=(Slider[])menuType.GetField("disasterSliders",BindingFlags.Instance|BindingFlags.NonPublic).GetValue(menu);
                 Require(sliders.Count(s=>s.gameObject.activeSelf)==6,"VR meteor page includes four requested sliders plus warning and duration");
                 Require(Mathf.Abs(sliders[5].value-25)<.01f,"Opening VR settings preserves authored duration defaults");
-                cam.transform.LookAt(sliders[2].transform.TransformPoint(new Vector3(125,-13,0)));menu.Point(cam,true,true);pointDisaster.Invoke(menu,new object[]{cam,true,true});
+                Physics.SyncTransforms();
+                cam.transform.LookAt(sliders[2].transform.TransformPoint(new Vector3(125,-13,0)));
+                menuType.GetField("pointerRay",BindingFlags.Instance|BindingFlags.NonPublic).SetValue(menu,new Ray(cam.transform.position,cam.transform.forward));
+                pointDisaster.Invoke(menu,new object[]{cam,true,true});
                 Require(sliders[2].normalizedValue>.7f,"VR held input changes a generic disaster slider");cam.transform.LookAt(menu.transform.position);Capture(cam,"disaster-meteor-controls.png");
             }
             finally{devTuning.SetValue(menu,false);menu.Show(false,cam);}
