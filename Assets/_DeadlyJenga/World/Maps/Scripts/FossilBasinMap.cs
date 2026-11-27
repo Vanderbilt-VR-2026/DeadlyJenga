@@ -55,6 +55,7 @@ namespace DeadlyJenga.CastlePrototype
             structure=new GameObject("Excavation").transform; structure.SetParent(transform,false);
             settleUntil=Time.time+1.5f;settled=false;
             BuildFaceoff();
+            BuildExpansion();
             var tar=new GameObject("Lethal tar contact"); tar.transform.SetParent(structure,false);
             var trigger=tar.AddComponent<BoxCollider>(); trigger.isTrigger=true;
             trigger.center=new Vector3(0,-6,0);trigger.size=new Vector3(200,12,200);
