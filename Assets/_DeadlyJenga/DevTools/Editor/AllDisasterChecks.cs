@@ -158,6 +158,7 @@ namespace DeadlyJenga.CastlePrototype.Editor
             devTuning.SetValue(menu,true);
             try
             {
+                ((RectTransform)menuType.GetField("menuBody",BindingFlags.Instance|BindingFlags.NonPublic).GetValue(menu))?.gameObject.SetActive(true);
                 menuType.GetField("disasterPage",BindingFlags.Instance|BindingFlags.NonPublic).SetValue(menu,true);
                 var selection=menuType.GetField("disasterSelection",BindingFlags.Instance|BindingFlags.NonPublic);selection.SetValue(menu,Array.FindIndex(DemoDisasters.Prefabs,p=>p.GetComponent<MeteorShowerHazard>()));menu.Point(cam,false);pointDisaster.Invoke(menu,new object[]{cam,false,false});
                 var sliders=(Slider[])menuType.GetField("disasterSliders",BindingFlags.Instance|BindingFlags.NonPublic).GetValue(menu);
