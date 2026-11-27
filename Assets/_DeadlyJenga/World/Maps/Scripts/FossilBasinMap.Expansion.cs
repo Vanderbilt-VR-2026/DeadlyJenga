@@ -51,7 +51,6 @@ namespace DeadlyJenga.CastlePrototype
                     }
                 });
                 if (i < meshCount) ReadExpansionMesh(member, reader);
-                if (spec.kind == "deck") decks.Add(member);
                 byName[spec.name] = member;
             }
 
@@ -62,7 +61,10 @@ namespace DeadlyJenga.CastlePrototype
                 Rigidbody b = null;
                 if (j.b == "bearing" || j.b == "map") b = anchorBody;
                 else if (byName.TryGetValue(j.b, out var mb)) b = mb.Body;
-                if (b) Socket(a.Body, b, j.at, j.breakForce);
+                float force = (j.b == "bearing" || j.b == "map") && j.a.StartsWith("Link ", StringComparison.Ordinal)
+                    ? Mathf.Max(j.breakForce, 18000f)
+                    : j.breakForce;
+                if (b) Socket(a.Body, b, j.at, force);
             }
         }
 

@@ -192,7 +192,7 @@ namespace DeadlyJenga.DevTools.Editor
                 var eggNest=map.Blocks.First(b=>b.name=="Egg nest");
                 var brontoSkull=map.Blocks.First(b=>b.name=="Brontosaurus skull");
                 towerBefore=eggNest.position;brontoBefore=brontoSkull.position;
-                foreach(string targetName in new[]{"L1 column +0/-8 unit 0","L1 column +0/+8 unit 0","Brontosaurus back 1","Brontosaurus front right leg","Brontosaurus front left leg"})
+                foreach(string targetName in new[]{"L1 column +0/-8 unit 0","L1 column +0/+8 unit 0","Brontosaurus back 1","Brontosaurus right front leg","Brontosaurus left front leg"})
                 {
                     var tb=map.Blocks.FirstOrDefault(b=>b.name==targetName);
                     Check(tb,"collapse target present: "+targetName);
@@ -380,7 +380,7 @@ namespace DeadlyJenga.DevTools.Editor
                     var eggNest=map.Blocks.First(b=>b.name=="Egg nest");
                     var brontoSkull=map.Blocks.First(b=>b.name=="Brontosaurus skull");
                     towerBefore=eggNest.position;brontoBefore=brontoSkull.position;
-                    foreach(string targetName in new[]{"L1 column +0/-8 unit 0","L1 column +0/+8 unit 0","Brontosaurus back 1","Brontosaurus front right leg","Brontosaurus front left leg"})
+                    foreach(string targetName in new[]{"L1 column +0/-8 unit 0","L1 column +0/+8 unit 0","Brontosaurus back 1","Brontosaurus right front leg","Brontosaurus left front leg"})
                     {
                         var tb=map.Blocks.FirstOrDefault(b=>b.name==targetName);
                         Check(tb,"collapse target present: "+targetName);
