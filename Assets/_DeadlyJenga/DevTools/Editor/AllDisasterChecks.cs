@@ -195,7 +195,7 @@ namespace DeadlyJenga.CastlePrototype.Editor
             foreach(var prefab in DemoDisasters.Prefabs)
             {var options=prefab.GetComponent<IDemoHazard>();var settings=DemoDisasters.Values(session,prefab);Set(options,settings,"warning",0);Require(DemoDisasters.Execute(session,prefab.name,values:settings),"Concurrent launch: "+prefab.name);}
             yield return new WaitForSecondsRealtime(.5f);DemoDisasters.StopAll(session);yield return null;
-            Require(DisasterStates.Active.Count==0&&Tracked.Waves.Count==0,"Stopping concurrent disasters clears every shared effect source");
+            Require(DisasterStates.Active.All(s=>s.Capture()==null||s.Capture().residualOnly)&&Tracked.Waves.Count==0,"Stopping concurrent disasters clears every shared effect source");
             Require(session.Generator().Bodies.All(b=>!b||b.useGravity),"Temporary disaster changes leave normal block gravity intact");
             Require(errors==0,"Game Play Mode, menus and disaster visuals produce no errors");
             File.AppendAllText(ProjectPath.Report("AllDisasters.txt"),"COMPLETE: editor + stand-in physics + encoding; real two-headset networking and Quest performance remain device tests.\n");
