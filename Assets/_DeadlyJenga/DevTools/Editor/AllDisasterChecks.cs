@@ -154,15 +154,16 @@ namespace DeadlyJenga.CastlePrototype.Editor
             menuType.GetField("developerChild",BindingFlags.Instance|BindingFlags.NonPublic).SetValue(menu,false);
             menuType.GetField("developerRoute",BindingFlags.Instance|BindingFlags.NonPublic).SetValue(menu,"");
             var devTuning=menuType.GetField("developerDisasterTuning",BindingFlags.Instance|BindingFlags.NonPublic);
+            var pointDisaster=menuType.GetMethod("PointDisasterPage",BindingFlags.Instance|BindingFlags.NonPublic);
             devTuning.SetValue(menu,true);
             try
             {
                 menuType.GetField("disasterPage",BindingFlags.Instance|BindingFlags.NonPublic).SetValue(menu,true);
-                var selection=menuType.GetField("disasterSelection",BindingFlags.Instance|BindingFlags.NonPublic);selection.SetValue(menu,Array.FindIndex(DemoDisasters.Prefabs,p=>p.GetComponent<MeteorShowerHazard>()));menu.Point(cam,false);
+                var selection=menuType.GetField("disasterSelection",BindingFlags.Instance|BindingFlags.NonPublic);selection.SetValue(menu,Array.FindIndex(DemoDisasters.Prefabs,p=>p.GetComponent<MeteorShowerHazard>()));menu.Point(cam,false);pointDisaster.Invoke(menu,new object[]{cam,false,false});
                 var sliders=(Slider[])menuType.GetField("disasterSliders",BindingFlags.Instance|BindingFlags.NonPublic).GetValue(menu);
                 Require(sliders.Count(s=>s.gameObject.activeSelf)==6,"VR meteor page includes four requested sliders plus warning and duration");
                 Require(Mathf.Abs(sliders[5].value-25)<.01f,"Opening VR settings preserves authored duration defaults");
-                cam.transform.LookAt(sliders[2].transform.TransformPoint(new Vector3(125,-13,0)));menu.Point(cam,true,true);
+                cam.transform.LookAt(sliders[2].transform.TransformPoint(new Vector3(125,-13,0)));menu.Point(cam,true,true);pointDisaster.Invoke(menu,new object[]{cam,true,true});
                 Require(sliders[2].normalizedValue>.7f,"VR held input changes a generic disaster slider");cam.transform.LookAt(menu.transform.position);Capture(cam,"disaster-meteor-controls.png");
             }
             finally{devTuning.SetValue(menu,false);menu.Show(false,cam);}
