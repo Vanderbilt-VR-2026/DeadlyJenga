@@ -160,7 +160,7 @@ namespace DeadlyJenga.CastlePrototype.Editor
             {
                 ((RectTransform)menuType.GetField("menuBody",BindingFlags.Instance|BindingFlags.NonPublic).GetValue(menu))?.gameObject.SetActive(true);
                 menuType.GetField("disasterPage",BindingFlags.Instance|BindingFlags.NonPublic).SetValue(menu,true);
-                var selection=menuType.GetField("disasterSelection",BindingFlags.Instance|BindingFlags.NonPublic);selection.SetValue(menu,Array.FindIndex(DemoDisasters.Prefabs,p=>p.GetComponent<MeteorShowerHazard>()));menu.Point(cam,false);pointDisaster.Invoke(menu,new object[]{cam,false,false});
+                var selection=menuType.GetField("disasterSelection",BindingFlags.Instance|BindingFlags.NonPublic);selection.SetValue(menu,Array.FindIndex(DemoDisasters.Prefabs,p=>p.GetComponent<MeteorShowerHazard>()));menuType.GetField("pointerRay",BindingFlags.Instance|BindingFlags.NonPublic).SetValue(menu,new Ray(cam.transform.position,cam.transform.forward));pointDisaster.Invoke(menu,new object[]{cam,false,false});
                 var sliders=(Slider[])menuType.GetField("disasterSliders",BindingFlags.Instance|BindingFlags.NonPublic).GetValue(menu);
                 Require(sliders.Count(s=>s.gameObject.activeSelf)==6,"VR meteor page includes four requested sliders plus warning and duration");
                 Require(Mathf.Abs(sliders[5].value-25)<.01f,"Opening VR settings preserves authored duration defaults");
