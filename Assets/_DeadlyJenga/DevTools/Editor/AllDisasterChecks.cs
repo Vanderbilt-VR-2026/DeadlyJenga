@@ -125,8 +125,10 @@ namespace DeadlyJenga.CastlePrototype.Editor
                         string json=JsonUtility.ToJson(f);var copy=JsonUtility.FromJson<DisasterFrame>(System.Text.Encoding.UTF8.GetString(CastleFusionWire.Decompress(CastleFusionWire.Compress(System.Text.Encoding.UTF8.GetBytes(json)))));
                         Require(copy!=null&&copy.kind==f.kind,prefab.name+" state round-trips through compressed network encoding");
                     }
-                    else
-                    {var wave=(TsunamiHazard)hazard;Require(wave.Wave.width>0&&wave.height==settings[2],"Tsunami uses selected height and map-fitted width");}
+                    else if(hazard is TsunamiHazard wave)
+                    {Require(wave.Wave.width>0&&wave.height==settings[2],"Tsunami uses selected height and map-fitted width");}
+                    else if(hazard is IDisasterState stateHazard)
+                    {var f=stateHazard.Capture();Require(f!=null&&DisasterStates.Active.Contains(stateHazard),prefab.name+" publishes its visual state");}
                     timer.Stop();File.AppendAllText(ProjectPath.Report("AllDisasters.txt"),"TIMING "+prefab.name+" checks "+timer.ElapsedMilliseconds+" ms\n");
                     hazard.End();Require(!hazard.Active&&(!(hazard is IDisasterState source)||!DisasterStates.Active.Contains(source)),prefab.name+" stops and unregisters cleanly");
                     if(hazard is IceyHazard)Require(!map.blocks[0].GetComponent<Collider>().sharedMaterial&&DisasterStates.Slipperiness==0,"Ice restores original friction on stop");
