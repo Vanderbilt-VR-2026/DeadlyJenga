@@ -192,7 +192,7 @@ namespace DeadlyJenga.DevTools.Editor
                 var eggNest=map.Blocks.First(b=>b.name=="Egg nest");
                 var brontoSkull=map.Blocks.First(b=>b.name=="Brontosaurus skull");
                 towerBefore=eggNest.position;brontoBefore=brontoSkull.position;
-                foreach(string targetName in new[]{"L1 column +0/-8 unit 0","L1 column +0/+8 unit 0","Brontosaurus back 1","Brontosaurus right front leg","Brontosaurus left front leg"})
+                foreach(string targetName in new[]{"L1 column +0/-8 unit 0","L1 column +0/+8 unit 0","Brontosaurus back 1","Brontosaurus right foreleg","Brontosaurus left foreleg"})
                 {
                     var tb=map.Blocks.FirstOrDefault(b=>b.name==targetName);
                     Check(tb,"collapse target present: "+targetName);
@@ -212,7 +212,7 @@ namespace DeadlyJenga.DevTools.Editor
                 Check(brontoTravel>.5f||!brontoSkull.gameObject.activeSelf,"expansion brontosaurus collapses on push: "+brontoTravel);
                 map.Rebuild();
                 var respawn=map.SafeSpawnPoint();
-                Check(Physics.Raycast(respawn+Vector3.up*.25f,Vector3.down,out var rhit,.8f,1<<Layers.Block)&&rhit.normal.y>.86f,"post-rebuild respawn has flat bearing at "+respawn);
+                Check(Physics.SphereCast(respawn+Vector3.up*.4f,.2f,Vector3.down,out var rhit,1f,1<<Layers.Block)&&rhit.normal.y>.86f,"post-rebuild respawn has flat bearing at "+respawn);
                 End();
             }
         }
@@ -380,7 +380,7 @@ namespace DeadlyJenga.DevTools.Editor
                     var eggNest=map.Blocks.First(b=>b.name=="Egg nest");
                     var brontoSkull=map.Blocks.First(b=>b.name=="Brontosaurus skull");
                     towerBefore=eggNest.position;brontoBefore=brontoSkull.position;
-                    foreach(string targetName in new[]{"L1 column +0/-8 unit 0","L1 column +0/+8 unit 0","Brontosaurus back 1","Brontosaurus right front leg","Brontosaurus left front leg"})
+                    foreach(string targetName in new[]{"L1 column +0/-8 unit 0","L1 column +0/+8 unit 0","Brontosaurus back 1","Brontosaurus right foreleg","Brontosaurus left foreleg"})
                     {
                         var tb=map.Blocks.FirstOrDefault(b=>b.name==targetName);
                         Check(tb,"collapse target present: "+targetName);
@@ -400,7 +400,7 @@ namespace DeadlyJenga.DevTools.Editor
                     Check(brontoTravel>.5f||!brontoSkull.gameObject.activeSelf,"expansion brontosaurus collapses on push: "+brontoTravel);
                     map.Rebuild();
                     var respawn=map.SafeSpawnPoint();
-                    Check(Physics.Raycast(respawn+Vector3.up*.25f,Vector3.down,out var rhit,.8f,1<<Layers.Block)&&rhit.normal.y>.86f,"post-rebuild respawn has flat bearing at "+respawn);
+                    Check(Physics.SphereCast(respawn+Vector3.up*.4f,.2f,Vector3.down,out var rhit,1f,1<<Layers.Block)&&rhit.normal.y>.86f,"post-rebuild respawn has flat bearing at "+respawn);
                     File.WriteAllText(Folder+"/desktop.txt",report);
                     peer=FossilBasinPeer.Receive(map,(CastlePlaySession)Services.Session,Check);
                     deadline=EditorApplication.timeSinceStartup+130;phase=6;return;
