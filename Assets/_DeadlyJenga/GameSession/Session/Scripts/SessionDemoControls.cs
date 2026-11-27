@@ -136,6 +136,7 @@ namespace DeadlyJenga.CastlePrototype
         public int DisasterCount => DemoDisasters.Prefabs.Length;
         UnityEngine.GameObject Prefab(int index) { var all = DemoDisasters.Prefabs; return index >= 0 && index < all.Length ? all[index] : null; }
         public string DisasterLabel(int index) => DemoDisasters.Label(Prefab(index));
+        public string DisasterDescription(int index) => DemoDisasters.Description(Prefab(index));
         public bool DisasterIsToggle(int index) { var p = Prefab(index); return p && (p.GetComponent<IDemoHazard>()?.Toggle ?? false); }
         public IReadOnlyList<DisasterParameter> DisasterParameters(int index) { var p = Prefab(index); return p ? DemoDisasters.Parameters(p) : Array.Empty<DisasterParameter>(); }
         public float[] DisasterValues(int index) { var p = Prefab(index); return p ? DemoDisasters.Values(session, p) : new float[0]; }

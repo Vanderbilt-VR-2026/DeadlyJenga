@@ -165,6 +165,10 @@ namespace DeadlyJenga.CastlePrototype.Editor
                 var sliders=(Slider[])menuType.GetField("disasterSliders",BindingFlags.Instance|BindingFlags.NonPublic).GetValue(menu);
                 Require(sliders.Count(s=>s.gameObject.activeSelf)==6,"VR meteor page includes four requested sliders plus warning and duration");
                 Require(Mathf.Abs(sliders[5].value-25)<.01f,"Opening VR settings preserves authored duration defaults");
+                var headingField=(Text)menuType.GetField("heading",BindingFlags.Instance|BindingFlags.NonPublic).GetValue(menu);
+                var selectedPrefab=DemoDisasters.Prefabs[(int)selection.GetValue(menu)];
+                Require(headingField&&headingField.text.Contains(DemoDisasters.Description(selectedPrefab)),"VR disaster page displays selected disaster description");
+                for(int di=0;di<session.Demo.DisasterCount;di++)Require(!string.IsNullOrWhiteSpace(session.Demo.DisasterDescription(di)),"Disaster description present: "+session.Demo.DisasterLabel(di));
                 Physics.SyncTransforms();
                 cam.transform.LookAt(sliders[2].transform.TransformPoint(new Vector3(125,-13,0)));
                 menuType.GetField("pointerRay",BindingFlags.Instance|BindingFlags.NonPublic).SetValue(menu,new Ray(cam.transform.position,cam.transform.forward));
@@ -180,16 +184,16 @@ namespace DeadlyJenga.CastlePrototype.Editor
             Require(session.HandBots.Count==12&&session.Bots().Count==survivors,"Twelve hands coexist without trimming survivor bots");
             session.Bots().ClearBots();session.Hands().ClearHands();yield return null;
             var tornado=DemoDisasters.Prefabs.First(p=>p.GetComponent<TornadoHazard>());var v=DemoDisasters.Values(session,tornado);Set(tornado.GetComponent<IDemoHazard>(),v,"warning",0);DemoDisasters.Request(session,tornado);
-            yield return new WaitForSecondsRealtime(1);
+            yield return new WaitForSecondsRealtime(3.5f);
             var active=session.GetComponentsInChildren<BasicDisaster>().FirstOrDefault(h=>h.Active);
             Require(active&&active.Capture().age>.5f,"Real Unity FixedUpdate advances derived disasters without the test driver");
             Require(Object.FindFirstObjectByType<DeadlyJenga.CandyArt.CandyDisasterVisuals>(),"Map loads the candy disaster renderer");
             Orbit(oldWorld,"disaster-tornado.png");DemoDisasters.StopAll(session);yield return null;
-            foreach(string kind in new[]{"MeteorShower","Fire","Icey","AcidRain","AntiGravity"})
+            foreach(string kind in new[]{"MeteorShower","PlanetKillerMeteor","Earthquake","Tsunami","Fire","Icey","AcidRain","AntiGravity"})
             {
                 var prefab=DemoDisasters.Prefabs.First(p=>p.name==kind);var options=prefab.GetComponent<IDemoHazard>();var settings=DemoDisasters.Values(session,prefab);Set(options,settings,"warning",0);
                 Require(DemoDisasters.Execute(session,prefab.name,values:settings),kind+" launches in the real castle");
-                yield return new WaitForSecondsRealtime(kind=="MeteorShower"?2.5f:.6f);Orbit(oldWorld,"disaster-"+kind.ToLowerInvariant()+".png");DemoDisasters.StopAll(session);yield return null;
+                yield return new WaitForSecondsRealtime(kind is "MeteorShower" or "PlanetKillerMeteor" or "Icey" or "Tsunami"?2.5f:1.2f);Orbit(oldWorld,"disaster-"+kind.ToLowerInvariant()+".png");DemoDisasters.StopAll(session);yield return null;
             }
             session.ResetCastle();yield return new WaitForSecondsRealtime(.5f);
             foreach(var prefab in DemoDisasters.Prefabs)

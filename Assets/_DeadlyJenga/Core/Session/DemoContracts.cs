@@ -54,6 +54,7 @@ namespace DeadlyJenga.Core
 
         int DisasterCount { get; }
         string DisasterLabel(int index);
+        string DisasterDescription(int index);
         bool DisasterIsToggle(int index);
         IReadOnlyList<DisasterParameter> DisasterParameters(int index);
         float[] DisasterValues(int index);
