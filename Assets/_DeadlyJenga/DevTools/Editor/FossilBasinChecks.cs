@@ -140,6 +140,18 @@ namespace DeadlyJenga.DevTools.Editor
                 bots.Running=true;Check(bots.SpawnOne(),"survivor bot spawn");
                 Shot("21-faceoff-wide",new Vector3(-4,25,-84),new Vector3(-4,12,1),37);
                 Shot("22-faceoff-camp",new Vector3(1,2.38f,-20),new Vector3(-9,10,-6),64);
+                Shot("24-expansion-tower-east",new Vector3(72,20,-34),new Vector3(48,14,-4),56);
+                Shot("25-expansion-bronto-west",new Vector3(-28,22,-26),new Vector3(-53,10,7),56);
+                float worst=map.Blocks.Select((b,i)=>Vector3.Distance(b.position,initial[i])).Max();
+                Check(worst<.7f,"unloaded maximum body travel "+worst);
+                foreach(string expName in new[]{"Shark skull and upper teeth","Pterodactyl torso","Pterodactyl cradle","Brontosaurus skull","Egg nest"})
+                {
+                    var expBody=bodies.FirstOrDefault(b=>b.name==expName);
+                    Check(expBody,"expansion member present: "+expName);
+                    var mr=expBody?expBody.GetComponentInChildren<MeshRenderer>():null;
+                    var mf=expBody?expBody.GetComponentInChildren<MeshFilter>():null;
+                    Check(mf&&mf.sharedMesh&&mf.sharedMesh.vertexCount>10&&mr&&mr.sharedMaterial&&mr.sharedMaterial.shader.isSupported,"expansion mesh and shader valid: "+expName);
+                }
                 var probe=GameObject.CreatePrimitive(PrimitiveType.Sphere);
                 probe.transform.position=new Vector3(35,.8f,-2);
                 probe.transform.localScale=Vector3.one*.3f;
@@ -177,6 +189,30 @@ namespace DeadlyJenga.DevTools.Editor
                 Check(footBefore.y-foot.position.y>.22f,"Triceratops foot drops after bearing pull: "+(footBefore.y-foot.position.y));
                 Check(westRefuge.gameObject.activeSelf&&Vector3.Distance(westRefuge.position,westBefore)<.3f,"west apron survives the east bearing pull");
                 Shot("23-faceoff-after-pull",new Vector3(-4,25,-84),new Vector3(-4,12,1),37);
+                var eggNest=map.Blocks.First(b=>b.name=="Egg nest");
+                var brontoSkull=map.Blocks.First(b=>b.name=="Brontosaurus skull");
+                towerBefore=eggNest.position;brontoBefore=brontoSkull.position;
+                foreach(string targetName in new[]{"L1 column +0/-8 unit 0","L1 column +0/+8 unit 0","Brontosaurus back 1","Brontosaurus front right leg","Brontosaurus front left leg"})
+                {
+                    var tb=map.Blocks.FirstOrDefault(b=>b.name==targetName);
+                    Check(tb,"collapse target present: "+targetName);
+                    if(tb)tb.GetComponent<FossilMember>().Push(Vector3.right*24,camera.gameObject);
+                }
+                clock=Time.fixedTime;phase=4;return;
+            }
+            if(phase==4&&dt>2.5f)
+            {
+                Shot("26-expansion-tower-collapse",new Vector3(72,20,-34),new Vector3(48,12,-4),56);
+                Shot("27-expansion-bronto-collapse",new Vector3(-28,22,-26),new Vector3(-53,8,7),56);
+                var eggNest=map.Blocks.First(b=>b.name=="Egg nest");
+                var brontoSkull=map.Blocks.First(b=>b.name=="Brontosaurus skull");
+                float towerTravel=Vector3.Distance(towerBefore,eggNest.position);
+                float brontoTravel=Vector3.Distance(brontoBefore,brontoSkull.position);
+                Check(towerTravel>.5f||!eggNest.gameObject.activeSelf,"expansion exhibit tower collapses on column push: "+towerTravel);
+                Check(brontoTravel>.5f||!brontoSkull.gameObject.activeSelf,"expansion brontosaurus collapses on push: "+brontoTravel);
+                map.Rebuild();
+                var respawn=map.SafeSpawnPoint();
+                Check(Physics.Raycast(respawn+Vector3.up*.25f,Vector3.down,out var rhit,.8f,1<<Layers.Block)&&rhit.normal.y>.86f,"post-rebuild respawn has flat bearing at "+respawn);
                 End();
             }
         }
