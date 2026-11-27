@@ -168,7 +168,7 @@ namespace DeadlyJenga.CastlePrototype.Editor
                 cam.transform.LookAt(sliders[2].transform.TransformPoint(new Vector3(125,-13,0)));
                 menuType.GetField("pointerRay",BindingFlags.Instance|BindingFlags.NonPublic).SetValue(menu,new Ray(cam.transform.position,cam.transform.forward));
                 pointDisaster.Invoke(menu,new object[]{cam,true,true});
-                Require(sliders[2].normalizedValue>.7f,"VR held input changes a generic disaster slider");cam.transform.LookAt(menu.transform.position);Capture(cam,"disaster-meteor-controls.png");
+                Require(sliders[2].normalizedValue>.7f,$"VR held input changes a generic disaster slider (norm={sliders[2].normalizedValue:F3} val={sliders[2].value} active={sliders[2].gameObject.activeInHierarchy} inter={sliders[2].interactable} min={sliders[2].minValue} max={sliders[2].maxValue})");cam.transform.LookAt(menu.transform.position);Capture(cam,"disaster-meteor-controls.png");
             }
             finally{devTuning.SetValue(menu,false);menu.Show(false,cam);}
             session.Bots().targetPopulation=1;
