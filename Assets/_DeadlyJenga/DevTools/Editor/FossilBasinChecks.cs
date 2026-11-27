@@ -61,6 +61,7 @@ namespace DeadlyJenga.DevTools.Editor
         }
         static FossilBasinChecks(){EditorApplication.playModeStateChanged+=State;}
         public static void Run()=>RunFaceoff();
+        public static void RunFull()=>Begin(false,false);
         public static void RunFaceoff()=>Begin(false, true);
         public static void RunScenery()=>Begin(true);
         static void Begin(bool sceneryOnly, bool faceoff = false)
