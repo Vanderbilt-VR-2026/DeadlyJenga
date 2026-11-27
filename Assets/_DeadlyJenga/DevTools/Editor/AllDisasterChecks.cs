@@ -119,7 +119,7 @@ namespace DeadlyJenga.CastlePrototype.Editor
                             Require(sheltered.Health==safeHealth,"Angled solid cover protects against Vampire sunlight");
                         }
                         else if(f.kind=="AcidRain")Require(exposed.Health<health&&sheltered.Health==safeHealth,"Acid damages exposed players while shelter protects them");
-                        else if(f.kind=="Earthquake"){Require(map.blocks.Any(b=>!b.isKinematic&&(b.linearVelocity.sqrMagnitude>1e-4f||b.angularVelocity.sqrMagnitude>1e-4f)),"Earthquake shakes map blocks");Require((exposed.impulse-before).sqrMagnitude<=1e-6f,"Earthquake does not inject a traversal-breaking player combat impulse");}
+                        else if(f.kind=="Earthquake"){yield return new WaitForFixedUpdate();Require(map.blocks.Any(b=>!b.isKinematic&&(b.linearVelocity.sqrMagnitude>1e-4f||b.angularVelocity.sqrMagnitude>1e-4f)),"Earthquake shakes map blocks");Require((exposed.impulse-before).sqrMagnitude<=1e-6f,"Earthquake does not inject a traversal-breaking player combat impulse");}
                         else if(f.kind=="AntiGravity")Require(f.values!=null&&f.values.Length>=2&&f.values[1]>0&&f.values[1]<1,"Low gravity publishes a reduced gravity scale");
                         else Require((exposed.impulse-before).sqrMagnitude>0,f.kind+" affects the player ability stand-in");
                         string json=JsonUtility.ToJson(f);var copy=JsonUtility.FromJson<DisasterFrame>(System.Text.Encoding.UTF8.GetString(CastleFusionWire.Decompress(CastleFusionWire.Compress(System.Text.Encoding.UTF8.GetBytes(json)))));
