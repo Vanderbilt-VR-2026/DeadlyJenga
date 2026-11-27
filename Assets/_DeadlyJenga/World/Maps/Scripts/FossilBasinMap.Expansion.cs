@@ -5,7 +5,7 @@ using System.IO.Compression;
 using UnityEngine;
 using UnityEngine.Rendering;
 
-namespace DeadlyJenga.World.Maps
+namespace DeadlyJenga.CastlePrototype
 {
     public sealed partial class FossilBasinMap
     {
