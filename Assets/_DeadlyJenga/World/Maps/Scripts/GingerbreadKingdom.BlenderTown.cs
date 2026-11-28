@@ -11,9 +11,11 @@ namespace DeadlyJenga.CastlePrototype
     // Physics validation import of the Blender Gingerbread Kingdom (town, castle and Big Ben).
     // Off by default: the normal match still builds the hand-made kingdom. Tests switch it on.
     // Every body, collision shape and glue joint comes from the Blender physics files; only the art is thinned.
-    public sealed partial class GingerbreadKingdom
+    public sealed partial class GingerbreadKingdom : ITraversalCollisionWorld
     {
         public static bool UseBlenderPhysicsTown;
+        // Survivors collide with and climb the imported pieces themselves.
+        public bool UsesOriginalColliders => builtBlender;
         // The castle and Big Ben part files are authored in town coordinates, so they need no offset.
         static readonly (string file, Vector3 offset)[] BlenderParts =
         {
@@ -21,9 +23,9 @@ namespace DeadlyJenga.CastlePrototype
             ("GingerbreadPhysicsCastle", Vector3.zero),
             ("GingerbreadPhysicsBigBen", Vector3.zero),
         };
-        const float SettleSeconds = 1.5f;
-        // Glue holds about this many times the lighter piece's weight, so it carries the
-        // pieces at rest but breaks under blasts, pushes and hand pulls.
+        const float SettleSeconds = 2.5f;
+        const float LoadMargin = 3f;
+        // Lightly loaded glue still holds this many times the lighter piece's weight.
         const float GlueStrength = 15f;
 
         [Serializable] sealed class BoxSpec { public Vector3 p, size, forward, up; }
@@ -35,7 +37,7 @@ namespace DeadlyJenga.CastlePrototype
             public float blenderHz; public bool hasSpawn; public Vector3 spawn, bodyMin, bodyMax;
             public BodySpec[] bodies; public StaticSpec[] statics; public JointSpec[] joints;
         }
-        sealed class Glue { public FixedJoint joint; public float force; }
+        sealed class Glue { public FixedJoint joint; public float floor, cap, load, twist; }
 
         bool builtBlender;
         Vector3 blenderSpawn;
@@ -82,9 +84,9 @@ namespace DeadlyJenga.CastlePrototype
                     // Blender breaks glue on impulse per substep; PhysX breaks on force.
                     // Never stronger than Blender, and weak enough for gameplay to break.
                     float lighter = j.b >= 0 ? Mathf.Min(a.mass, b.mass) : a.mass;
-                    float force = Mathf.Min(j.impulse * layout.blenderHz, GlueStrength * 9.81f * lighter);
+                    float cap = j.impulse * layout.blenderHz, floor = Mathf.Min(cap, GlueStrength * 9.81f * lighter);
                     joint.breakForce = joint.breakTorque = float.PositiveInfinity;
-                    blenderGlue.Add(new Glue { joint = joint, force = force });
+                    blenderGlue.Add(new Glue { joint = joint, floor = floor, cap = cap });
                 }
                 // Spawn and bounds stay in map space; the properties convert them to world space.
                 if (first && layout.hasSpawn) blenderSpawn = offset + layout.spawn;
@@ -107,11 +109,25 @@ namespace DeadlyJenga.CastlePrototype
 
         void FinishBlenderSettle()
         {
-            // Joints cannot break while the freshly built town settles its first contacts.
-            if (!builtBlender || blenderSettledAt <= 0 || Time.time < blenderSettledAt) return;
+            // Joints cannot break while the freshly built town settles. During the last second
+            // each joint records the load it carries; it then breaks at a few times that load
+            // (at least a light floor), so the town holds at rest but gameplay can break it.
+            if (!builtBlender || blenderSettledAt <= 0) return;
+            if (Time.time >= blenderSettledAt - 1f)
+                foreach (var g in blenderGlue)
+                    if (g.joint)
+                    {
+                        g.load = Mathf.Max(g.load, g.joint.currentForce.magnitude);
+                        g.twist = Mathf.Max(g.twist, g.joint.currentTorque.magnitude);
+                    }
+            if (Time.time < blenderSettledAt) return;
             blenderSettledAt = 0;
             foreach (var g in blenderGlue)
-                if (g.joint) { g.joint.breakForce = g.force; g.joint.breakTorque = g.force * .75f; }
+                if (g.joint)
+                {
+                    g.joint.breakForce = Mathf.Min(g.cap, Mathf.Max(g.floor, g.load * LoadMargin));
+                    g.joint.breakTorque = Mathf.Min(g.cap, Mathf.Max(g.floor * .75f, g.twist * LoadMargin));
+                }
         }
 
         GingerbreadPiece BlenderBody(Transform part, BodySpec spec, List<(Mesh mesh, int[] finishes)> shapes)

@@ -118,7 +118,8 @@ namespace DeadlyJenga.DevTools.Editor
                 if (phase == 2 && dt > 10f) { Settled(); clock = Time.fixedTime; phase++; return; }
                 if (phase == 3) { if (Pull(dt)) { clock = Time.fixedTime; phase++; } return; }
                 if (phase == 4) { if (dt >= shots * .5f) { Blasts(); shots++; } if (shots >= 6) { clock = Time.fixedTime; phase++; } return; }
-                if (phase == 5 && dt > 6f) { Collapsed(); Respawn(); End(); }
+                if (phase == 5) { Quake(); clock = Time.fixedTime; phase++; return; }
+                if (phase == 6 && dt > 14f) { Collapsed(); Respawn(); End(); }
             }
             catch (Exception e)
             {
@@ -193,14 +194,25 @@ namespace DeadlyJenga.DevTools.Editor
         }
         static void Blasts() { Blast(benBase, 6); Blast(keepBase, 6); }
 
+        // The match's own earthquake disaster, launched the way the demo menu launches it.
+        static void Quake()
+        {
+            var demo = Services.Session.Demo;
+            int index = -1;
+            for (int i = 0; demo != null && i < demo.DisasterCount; i++)
+                if (demo.DisasterLabel(i).IndexOf("quake", StringComparison.OrdinalIgnoreCase) >= 0) { index = i; break; }
+            Check(index >= 0, "earthquake disaster available");
+            if (index >= 0) Note("  launched " + demo.DisasterLabel(index) + ": " + demo.LaunchDisaster(index));
+        }
+
         static void Collapsed()
         {
             float benDrop = benTopBefore.y - benTop.position.y;
-            Check(benDrop > 1f, "Big Ben top falls after hand pulls and 6 blaster shots: drop " + benDrop.ToString("F2") + " m");
+            Check(benDrop > 1f, "Big Ben top falls after hand pulls, 6 blaster shots and an earthquake: drop " + benDrop.ToString("F2") + " m");
             if (keepTop)
             {
                 float keepDrop = keepTopBefore.y - keepTop.position.y;
-                Check(keepDrop > 1f, "castle keep top falls after 6 blaster shots: drop " + keepDrop.ToString("F2") + " m");
+                Check(keepDrop > 1f, "castle keep top falls after 6 blaster shots and an earthquake: drop " + keepDrop.ToString("F2") + " m");
             }
             else Check(false, "castle keep pieces present");
             int joints = map.GetComponentsInChildren<FixedJoint>().Length;
