@@ -294,8 +294,7 @@ namespace DeadlyJenga.DevTools.Editor
                 DemoDisasters.StopAll(session); session.ResetMap();
                 yield return new WaitForSecondsRealtime(1.5f);
                 // Buildup: a short warning so the approach / build-up state is visible.
-                SetParameter(session, prefab, "warning", 3);
-                File.AppendAllText(Report, kind + ": " + DemoDisasters.Request(session, prefab) + "\n");
+                File.AppendAllText(Report, kind + ": started=" + Launch(session, prefab, 3) + "\n");
                 yield return new WaitForSecondsRealtime(1.6f);
                 PhasePair(session, kind, "1-buildup", r); frames += 2;
                 // Peak: well into the active phase (the tsunami waits for a tall wave).
@@ -308,14 +307,33 @@ namespace DeadlyJenga.DevTools.Editor
                 yield return new WaitForSecondsRealtime(2f);
                 PhasePair(session, kind, "3-aftermath", r); frames += 2;
                 // Replay: the same disaster again with no warning, to prove it starts clean.
-                SetParameter(session, prefab, "warning", 0);
-                File.AppendAllText(Report, kind + " replay: " + DemoDisasters.Request(session, prefab) + "\n");
+                File.AppendAllText(Report, kind + " replay: started=" + Launch(session, prefab, 0) + "\n");
                 yield return new WaitForSecondsRealtime(kind == "Tsunami" ? 8 : 3.5f);
                 Shot(session, kind + "-4-replay-overview", false); frames++;
             }
             string summary = $"Disaster phase gallery: {frames} frames, {auditFailures} failed the pixel audit";
             File.AppendAllText(Report, summary + "\n"); Debug.Log(summary);
             if (auditFailures > 0) failed = true;
+        }
+
+        // Starts a disaster the way game modes do (ExecuteForMode is not gated by the shared demo-controls policy),
+        // with an explicit warning time.
+        static bool Launch(CastlePlaySession session, GameObject prefab, float warning)
+        {
+            var values = DemoDisasters.Values(session, prefab).ToArray(); var parameters = DemoDisasters.Parameters(prefab);
+            for (int i = 0; i < parameters.Count && i < values.Length; i++) if (parameters[i].id == "warning") values[i] = warning;
+            bool ok = DemoDisasters.ExecuteForMode(session, prefab.name, values);
+            if (!ok) { File.AppendAllText(Report, "  FAIL " + prefab.name + " did not start\n"); auditFailures++; }
+            return ok;
+        }
+
+        static Camera captureCamera;
+        static Camera CaptureCamera(CastlePlaySession session)
+        {
+            if (session && session.ActiveCamera) return session.ActiveCamera;
+            if (Camera.main) return Camera.main;
+            if (!captureCamera) captureCamera = new GameObject("Capture camera (gallery)").AddComponent<Camera>();
+            return captureCamera;
         }
 
         static void SetParameter(CastlePlaySession session, GameObject prefab, string id, float value)
@@ -430,7 +448,7 @@ namespace DeadlyJenga.DevTools.Editor
 
         static void View(CastlePlaySession session, string file, Vector3 position, Vector3 target, float fov)
         {
-            var camera = session.ActiveCamera;
+            var camera = CaptureCamera(session);
             camera.transform.position = position; camera.transform.LookAt(target); camera.fieldOfView = fov; camera.farClipPlane = 2500;
             Render(session, file, position, target);
         }
@@ -459,7 +477,7 @@ namespace DeadlyJenga.DevTools.Editor
             Vector3 position;
             if (close) position = world.Center + new Vector3(.75f, 0, -1).normalized * world.Radius * 1.25f + Vector3.up * world.TopHeight * .7f;
             else position = target + new Vector3(.7f, .5f, -1).normalized * span * 1.5f;
-            var camera = session.ActiveCamera;
+            var camera = CaptureCamera(session);
             camera.transform.position = position; camera.transform.LookAt(close ? (found ? focus : center) : target);
             camera.fieldOfView = 60; camera.farClipPlane = 2500;
             Render(session, file, position, focus);
@@ -467,7 +485,7 @@ namespace DeadlyJenga.DevTools.Editor
 
         static void Render(CastlePlaySession session, string file, Vector3 position, Vector3 focus)
         {
-            var camera = session.ActiveCamera;
+            var camera = CaptureCamera(session);
             foreach (var art in Object.FindObjectsByType<CandyDisasterVisuals>(FindObjectsSortMode.None))
                 typeof(CandyDisasterVisuals).GetMethod("LateUpdate", BindingFlags.Instance | BindingFlags.NonPublic)?.Invoke(art, null);
             foreach (var art in Object.FindObjectsByType<CandyTsunamiVisuals>(FindObjectsSortMode.None))
