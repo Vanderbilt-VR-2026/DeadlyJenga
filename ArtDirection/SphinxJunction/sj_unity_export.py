@@ -152,9 +152,9 @@ def export(path, members, sources, frame_matrix, dg, islands, rail_parts=frozens
                 for p in Pp:
                     for j in range(1, len(p) - 1):
                         tris.append((p[0], p[j + 1], p[j], (0, 0, 0)))
-                # fixed members (the foundation and piles) keep exact concave colliders on kinematic bodies,
-                # as the Blender test's passive meshes
-                count += sum(write_part(f, 3 if n in fixed else 2, verts, tris))
+                # the hall foundation keeps exact concave colliders (its openings must stay open); piles stay
+                # convex, which resting pieces cannot sink through, and the map makes them kinematic
+                count += sum(write_part(f, 3 if n == 'Pyramid podium and hall floor' else 2, verts, tris))
             for verts, tris in o['vis']:
                 count += sum(write_part(f, 0, verts, tris))
             end = f.tell(); f.seek(count_pos); f.write(struct.pack('<H', count)); f.seek(end)

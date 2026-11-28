@@ -86,9 +86,10 @@ namespace DeadlyJenga.CastlePrototype
                 if (name.StartsWith("Rail bridge ", System.StringComparison.Ordinal)) continue;   // placed by Railway()
                 var bounds = structure.SolidBoundsOf(name);
                 Begin(name, bounds.center.x, bounds.center.y, bounds.center.z);
-                // The podium and hall floor, and every member driven into the sand bed, are exported with exact
-                // (concave) colliders, which makes their bodies kinematic: fixed foundations, as in the Blender test.
+                // The podium and hall floor (exact concave colliders) and every member driven into the sand bed
+                // are fixed foundations, as in the Blender test (piles below 0.3 m there, 0.40 in map units).
                 var body = End();
+                if (bounds.min.y < .40f) body.isKinematic = true;
                 bakedMembers.Add(body);
                 byName[name] = body;
                 if (body.isKinematic) anchored.Add(body);
