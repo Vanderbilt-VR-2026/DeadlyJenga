@@ -46,10 +46,9 @@ namespace DeadlyJenga.CastlePrototype
         }
 
         public static int BodyCount => Load().bodies.Length;
-        // Multiplies every authored joint break force. The Blender joints (1) hold ~300x carried weight, too strong for
-        // any in-game disaster; Unity sweeps against the match earthquake (8 m/s2, 2 Hz) chose 0.2: the town stands and
-        // the quake breaks it progressively.
-        public const float DefaultJointScale = .2f;
+        // Multiplies every joint's load-based break limit (see ShrineCityJoints). A single scaled copy of the Blender
+        // limits could not both stand and break under the match earthquake, so limits now come from Unity's own loads.
+        public const float DefaultJointScale = 1;
         public static float JointScale = DefaultJointScale;
         public static string Building(int index) => Load().bodies[index].building;
         public static string BodyId(int index) => Load().bodies[index].id;
@@ -140,6 +139,8 @@ namespace DeadlyJenga.CastlePrototype
         // Timber joinery: each authored joint ties two bodies and snaps above its break force.
         public static void Join(List<Rigidbody> bodies)
         {
+            if (bodies.Count == 0) return;
+            var tracker = bodies[0].transform.parent.gameObject.AddComponent<ShrineCityJoints>();
             foreach (var j in Load().joints)
             {
                 if (j.a < 0 || j.b < 0 || j.a >= bodies.Count || j.b >= bodies.Count) continue;
@@ -149,9 +150,10 @@ namespace DeadlyJenga.CastlePrototype
                 joint.connectedBody = b;
                 // A load hanging off a long body twists the joint more than it pulls; scale the torque limit by the lever.
                 float lever = 1 + Vector3.Distance(a.worldCenterOfMass, b.worldCenterOfMass);
-                joint.breakForce = j.f * JointScale;
-                joint.breakTorque = j.f * JointScale * lever;
                 joint.enablePreprocessing = false;
+                // Unbreakable while the town settles; afterwards 3x the load it carried, at least twice the lighter body's weight.
+                float floor = 2 * Mathf.Min(a.mass, b.mass) * 9.81f;
+                tracker.Track(joint, floor, floor * lever);
             }
         }
 
