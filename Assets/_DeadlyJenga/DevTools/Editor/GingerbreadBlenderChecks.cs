@@ -106,7 +106,7 @@ namespace DeadlyJenga.DevTools.Editor
                     initial = map.Blocks.Select(b => b.position).ToArray();
                     jointsBefore = map.GetComponentsInChildren<FixedJoint>().Length;
                     Note("Bodies " + initial.Length + ", box shapes " + map.GetComponentsInChildren<BoxCollider>().Length +
-                         ", hull shapes " + map.GetComponentsInChildren<MeshCollider>().Count(c => c.convex) + ", glue joints " + jointsBefore);
+                         ", hull shapes " + map.GetComponentsInChildren<MeshCollider>().Count(c => c.convex) + ", glue joints " + jointsBefore + ", starting overlaps ignored " + map.StartingOverlapCount);
                     Check(initial.Length > 850, "imported body count " + initial.Length);
                     camera = new GameObject("Gingerbread review camera").AddComponent<Camera>();
                     camera.enabled = false; camera.farClipPlane = 500; camera.nearClipPlane = .05f;

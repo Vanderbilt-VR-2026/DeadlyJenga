@@ -24,9 +24,9 @@ namespace DeadlyJenga.CastlePrototype
             ("GingerbreadPhysicsBigBen", Vector3.zero),
         };
         const float SettleSeconds = 2.5f;
-        const float LoadMargin = 5f;
+        const float LoadMargin = 3f;
         // Lightly loaded glue still holds this many times the lighter piece's weight.
-        const float GlueStrength = 25f;
+        const float GlueStrength = 15f;
 
         [Serializable] sealed class BoxSpec { public Vector3 p, size, forward, up; }
         [Serializable] sealed class BodySpec { public string name; public float mass; public Vector3 p; public BoxSpec[] boxes; public int[] hulls, visuals; }
@@ -102,6 +102,7 @@ namespace DeadlyJenga.CastlePrototype
             }
             // Stand the spawn on the street surface itself.
             Physics.SyncTransforms();
+            IgnoreStartingOverlaps();
             var above = transform.TransformPoint(blenderSpawn + Vector3.up * 20);
             if (Physics.Raycast(above, -transform.up, out var hit, 40, 1, QueryTriggerInteraction.Ignore))
                 blenderSpawn = transform.InverseTransformPoint(hit.point);
@@ -113,13 +114,56 @@ namespace DeadlyJenga.CastlePrototype
             slab.gameObject.AddComponent<BoxCollider>().size = V(hi.x - lo.x + 12, 1, hi.z - lo.z + 12);
         }
 
+        readonly List<(Collider a, Collider b)> overlapping = new();
+        public int StartingOverlapCount { get; private set; }
+        int overlapCursor;
+        // The Blender pieces sit slightly inside their neighbours. PhysX would push those apart at
+        // rest and load the glue with random spikes, so they ignore each other until they separate.
+        void IgnoreStartingOverlaps()
+        {
+            overlapping.Clear();
+            var near = new Collider[64];
+            foreach (var body in pieces)
+                foreach (var shape in body.GetComponent<GingerbreadPiece>().shapes)
+                {
+                    var bounds = shape.bounds;
+                    int n = Physics.OverlapBoxNonAlloc(bounds.center, bounds.extents, near, Quaternion.identity, 1 << Layers.Block, QueryTriggerInteraction.Ignore);
+                    for (int i = 0; i < n; i++)
+                    {
+                        var other = near[i]; var rb = other.attachedRigidbody;
+                        if (!rb || rb == body || other.GetInstanceID() <= shape.GetInstanceID() || !rb.GetComponent<GingerbreadPiece>()) continue;
+                        if (!Physics.ComputePenetration(shape, shape.transform.position, shape.transform.rotation,
+                                other, other.transform.position, other.transform.rotation, out _, out float depth) || depth < .004f) continue;
+                        Physics.IgnoreCollision(shape, other, true); overlapping.Add((shape, other));
+                    }
+                }
+            StartingOverlapCount = overlapping.Count;
+        }
+
+        void RestoreSeparatedShapes()
+        {
+            for (int i = 0; i < 32 && overlapping.Count > 0; i++)
+            {
+                overlapCursor %= overlapping.Count;
+                var (a, b) = overlapping[overlapCursor];
+                if (a && b)
+                {
+                    var seat = a.bounds; seat.Expand(.08f);
+                    if (seat.Intersects(b.bounds)) { overlapCursor++; continue; }
+                    Physics.IgnoreCollision(a, b, false);
+                }
+                overlapping.RemoveAt(overlapCursor);
+            }
+        }
+
         void FinishBlenderSettle()
         {
-            // Joints cannot break while the freshly built town settles. From half a second in
-            // each joint records the load it carries; it then breaks at five times that load
+            if (builtBlender && blenderSettledAt <= 0) RestoreSeparatedShapes();
+            // Joints cannot break while the freshly built town settles. During the last second
+            // each joint records the load it carries; it then breaks at three times that load
             // (at least a light floor), so the town holds at rest but gameplay can break it.
             if (!builtBlender || blenderSettledAt <= 0) return;
-            if (Time.time >= blenderSettledAt - SettleSeconds + .5f)
+            if (Time.time >= blenderSettledAt - 1f)
                 foreach (var g in blenderGlue)
                     if (g.joint)
                     {
