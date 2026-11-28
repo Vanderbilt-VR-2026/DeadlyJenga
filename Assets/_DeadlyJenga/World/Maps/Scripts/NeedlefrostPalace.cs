@@ -88,9 +88,39 @@ namespace DeadlyJenga.CastlePrototype
                 var joint = body.gameObject.AddComponent<FixedJoint>();
                 joint.connectedBody = bodies[seat];
                 joint.anchor = new Vector3(0, -.5f, 0);
-                joint.breakForce = Mathf.Clamp(body.mass * 50, 11000, 82000);
-                joint.breakTorque = joint.breakForce * .45f;
+                SetIceStrength(joint, body.mass);
             }
+
+            // A spire standing on a sculpted roof's peak is frozen onto it in the same way.
+            for (int i = 0; i < layout.Count; i++)
+            {
+                var crest = layout[i];
+                if (crest.Course >= FirstBlenderRoof) continue;
+                var bottom = crest.Position - crest.Size * .5f;
+                var top = crest.Position + crest.Size * .5f;
+                for (int j = 0; j < layout.Count; j++)
+                {
+                    var roof = layout[j];
+                    if (roof.Course < FirstBlenderRoof) continue;
+                    var peak = roof.Position + roof.Size * .5f;
+                    var low = roof.Position - roof.Size * .5f;
+                    if (Mathf.Abs(peak.y - bottom.y) > .055f || top.x <= low.x || bottom.x >= peak.x
+                        || top.z <= low.z || bottom.z >= peak.z) continue;
+                    var joint = bodies[i].gameObject.AddComponent<FixedJoint>();
+                    joint.connectedBody = bodies[j];
+                    joint.anchor = new Vector3(0, -.5f, 0);
+                    SetIceStrength(joint, bodies[i].mass);
+                    break;
+                }
+            }
+        }
+
+        // The seam holds about five times the member's weight and an overhang of a metre.
+        // A push, impact or disaster that moves the member sharply still shears it.
+        static void SetIceStrength(FixedJoint joint, float mass)
+        {
+            joint.breakForce = Mathf.Max(11000, mass * 50);
+            joint.breakTorque = joint.breakForce;
         }
 
         // Engaged turrets and roofs are carved into their neighbours. Those pairs start inside each
@@ -126,7 +156,8 @@ namespace DeadlyJenga.CastlePrototype
         // breakable joint so an overhanging blade or wing cannot slowly peel away from it.
         internal static void TieEngagedMembers(List<CastlePlacement> layout, List<Rigidbody> bodies, List<Vector2Int> pairs)
         {
-            const float palaceFloor = 9;
+            // The palace begins at the grand keep's first floor; bridge decks and courts below stay free.
+            const float palaceFloor = 16;
             foreach (var pair in pairs)
             {
                 var a = layout[pair.x];
@@ -134,8 +165,7 @@ namespace DeadlyJenga.CastlePrototype
                 if (a.Position.y - a.Size.y * .5f < palaceFloor || b.Position.y - b.Size.y * .5f < palaceFloor) continue;
                 var joint = bodies[pair.x].gameObject.AddComponent<FixedJoint>();
                 joint.connectedBody = bodies[pair.y];
-                joint.breakForce = Mathf.Clamp(Mathf.Min(bodies[pair.x].mass, bodies[pair.y].mass) * 50, 11000, 82000);
-                joint.breakTorque = joint.breakForce * .45f;
+                SetIceStrength(joint, Mathf.Max(bodies[pair.x].mass, bodies[pair.y].mass));
             }
         }
 
