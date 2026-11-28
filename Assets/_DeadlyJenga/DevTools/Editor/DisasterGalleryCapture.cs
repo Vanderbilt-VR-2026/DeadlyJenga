@@ -355,11 +355,14 @@ namespace DeadlyJenga.DevTools.Editor
             Shot(session, kind + "-" + phase + "-overview", false);
             var world = Services.World; var focus = Focus(out bool found);
             // Stand on open ground (or the water line) outside the castle, not on top of blocks.
-            Vector3 eye = world.Center + new Vector3(.6f, 0, -1).normalized * r * 1.7f;
+            // World.Radius can be smaller than the built castle, so measure the blocks along the view line.
+            Vector3 away = new Vector3(.6f, 0, -1).normalized; float reach = r;
+            foreach (var block in world.Blocks) if (block) reach = Mathf.Max(reach, Vector3.Dot(block.position - world.Center, away));
+            Vector3 eye = world.Center + away * (reach + 9);
             if (Physics.Raycast(eye + Vector3.up * 50, Vector3.down, out var hit, 120, 1 << Layers.Surface)) eye = hit.point;
             else { float water = world.WaterHeight(eye); eye.y = float.IsFinite(water) ? water : world.Center.y; }
             eye += Vector3.up * 1.7f;
-            View(session, kind + "-" + phase + "-player-eye", eye, found ? Vector3.Lerp(world.Center + Vector3.up * world.TopHeight * .4f, focus, .6f) : world.Center + Vector3.up * world.TopHeight * .45f, 75);
+            View(session, kind + "-" + phase + "-player-eye", eye, found ? Vector3.Lerp(world.Center + Vector3.up * world.TopHeight * .3f, focus, .5f) : world.Center + Vector3.up * world.TopHeight * .3f, 75);
         }
 
         static IEnumerator RainSkinShots(CastlePlaySession session)

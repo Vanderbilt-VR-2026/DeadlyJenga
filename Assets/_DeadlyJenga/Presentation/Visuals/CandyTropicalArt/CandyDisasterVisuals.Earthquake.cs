@@ -17,7 +17,7 @@ namespace DeadlyJenga.CandyArt
             public bool land;
         }
         readonly QuakeSample[] quakeSamples=new QuakeSample[QuakeGrid*QuakeGrid];
-        readonly List<Matrix4x4> quakeDust=new List<Matrix4x4>(128),quakeSpray=new List<Matrix4x4>(48),
+        readonly List<Matrix4x4> quakeDust=new List<Matrix4x4>(192),quakeSpray=new List<Matrix4x4>(48),
             quakeRipples=new List<Matrix4x4>(QuakeRippleLimit);
         readonly float[] quakeRippleOpacity=new float[QuakeRippleLimit];
         IWorldQuery quakeWorld;
@@ -31,7 +31,7 @@ namespace DeadlyJenga.CandyArt
 
         void InitializeEarthquake()
         {
-            quakeDustMaterial=ObjectMaterial("CandyDisasterSmoke",new Color(.63f,.46f,.30f,.59f));
+            quakeDustMaterial=ObjectMaterial("CandyDisasterSmoke",new Color(.60f,.45f,.31f,.74f));
             quakeSprayMaterial=ObjectMaterial("CandyStormMist",new Color(.73f,.94f,.88f,.78f));
             var shader=Resources.Load<Shader>("CandyScenery/CandyQuakeRipple");
             if(shader)
@@ -158,16 +158,18 @@ namespace DeadlyJenga.CandyArt
 
         void DrawQuakeSample(int index,QuakeSample sample,float age,float strength)
         {
-            if(age<=0||age>=2.25f)return;
+            if(age<=0||age>=2.6f)return;
             if(sample.land)
             {
-                float lifetime=1.1f+.65f*Hash(index+148);
-                if(age>=lifetime||quakeDust.Count>=120)return;
+                // Big, slow ground dust so the shock front reads from a player's eye and from overhead.
+                float lifetime=1.7f+.85f*Hash(index+148);
+                if(age>=lifetime||quakeDust.Count>=180)return;
                 float life=age/lifetime;
                 float envelope=Mathf.Sin(Mathf.PI*life);
-                float width=(.8f+1.15f*Hash(index+36)+life*1.2f)*strength*envelope*quakeCellScale;
-                Vector3 drift=QuakeDirection*(age*.7f)+Vector3.up*(.16f+life*.52f);
-                Puff(quakeDust,sample.point+drift,width,Mathf.Min(1.35f,width*.56f),index*31);
+                float width=(1.5f+1.9f*Hash(index+36)+life*2.4f)*strength*Mathf.Sqrt(envelope)*quakeCellScale;
+                Vector3 drift=QuakeDirection*(age*.9f)+Vector3.up*(.3f+life*.9f);
+                Puff(quakeDust,sample.point+drift,width,Mathf.Min(2.6f,width*.62f),index*31);
+                if(index%3==0)Puff(quakeDust,sample.point+drift*1.6f+Vector3.up*width*.3f,width*.7f,width*.55f,index*17+90);
                 if(index%5==0&&age<.65f&&candyChips.Count<384)
                 {
                     float height=age*(1.6f+Hash(index+99))-3.9f*age*age;
