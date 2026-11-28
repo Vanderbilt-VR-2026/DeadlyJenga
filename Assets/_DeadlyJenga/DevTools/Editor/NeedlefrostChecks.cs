@@ -221,7 +221,7 @@ namespace DeadlyJenga.DevTools.Editor
         }
 
         // What a member touches, is jointed to or ignores, for checks that expect it to move.
-        static void LogNeighbours(CastleGenerator map,System.Collections.Generic.List<CastlePlacement> placements,string label,Rigidbody body)
+        internal static void LogNeighbours(CastleGenerator map,System.Collections.Generic.List<CastlePlacement> placements,string label,Rigidbody body)
         {
             foreach(var joint in body.GetComponents<Joint>())
                 File.AppendAllText(Report,$"NEAR {label} joint to {(joint.connectedBody?map.Bodies.IndexOf(joint.connectedBody).ToString():"world")}\n");

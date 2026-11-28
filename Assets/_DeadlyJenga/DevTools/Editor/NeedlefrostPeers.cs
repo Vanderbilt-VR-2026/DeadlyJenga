@@ -72,7 +72,9 @@ namespace DeadlyJenga.DevTools.Editor
                 var start=coast.position;
                 coast.GetComponent<IPushable>().Push(Vector3.left*12,null);
                 yield return new WaitForSeconds(.9f);
-                check(Vector3.Distance(coast.position,start)>1,"Host moved the supported coast member before guest snapshot");
+                float coastTravel=Vector3.Distance(coast.position,start);
+                MayhemMarinaChecks.LogNeighbours(map,CastleLayout.Build(map.settings),"peer coast",coast);
+                check(coastTravel>1,$"Host moved the supported coast member before guest snapshot ({coastTravel:F2} m)");
                 for(int pass=0;pass<2;pass++)
                 {
                     if(pass==1){map.Rebuild();yield return new WaitForSeconds(1);}
