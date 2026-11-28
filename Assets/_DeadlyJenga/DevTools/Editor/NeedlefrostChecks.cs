@@ -39,6 +39,7 @@ namespace DeadlyJenga.DevTools.Editor
             Check(map && map.settings.layoutPreset=="needlefrost-keep" && !map.foundation,"Physical map loaded without foundation");
             captureOrigin=map.transform.position;
             var placements=CastleLayout.Build(map.settings);
+            yield return AuditSettle(map,placements);
             var session=Object.FindFirstObjectByType<CastlePlaySession>();
             var motor=session.Survivor();var spawn=map.SafeSpawnPoint();
             bool west=false,east=false,low=true;
@@ -83,7 +84,8 @@ namespace DeadlyJenga.DevTools.Editor
                 if (placements[i].Course < 100) continue;
                 var body = map.Bodies[i];
                 if (body.GetComponent<MeshCollider>()?.sharedMesh) sculptures++;
-                var seam = body.GetComponent<FixedJoint>();
+                // The seat is the joint anchored at the member's base; tie joints to engaged neighbours are separate.
+                var seam = body.GetComponents<FixedJoint>().FirstOrDefault(j=>j.anchor.y<-.4f);
                 if (seam && seam.connectedBody && !body.isKinematic) seated++;
             }
             File.AppendAllText(Report,$"Blender sculpted members {sculptures}; breakable seats {seated}\n");
@@ -102,6 +104,7 @@ namespace DeadlyJenga.DevTools.Editor
             float carried=0,drop=0;
             yield return DeadlyJenga.HandValidation.FlyingHandFeelValidation.PullMapMember(cornice,(travel,fallDepth)=>{carried=travel;drop=fallDepth;});
             File.AppendAllText(Report,$"Production hand cornice pull {carried:F2} m outward while closed, drop {drop:F2} m after opening\n");
+            LogNeighbours(map,placements,"cornice",cornice);
             var pier=map.Bodies[placements.FindIndex(p=>Mathf.Abs(p.Position.x+26)<.01f && p.Position.z==-19 && p.Position.y<1)];
             var deck=map.Bodies[placements.FindIndex(p=>Mathf.Abs(p.Position.x+26)<.01f && p.Position.z==-19 && p.Position.y>1)];
             float deckY=deck.position.y;
@@ -140,9 +143,19 @@ namespace DeadlyJenga.DevTools.Editor
             File.AppendAllText(Report,$"Motor ended at {motor.transform.position}, target {driver.target}, status {motor.ActionStatus}\n");
             motor.InputDriver=null;motor.externallyDriven=false;
             var upper=map.Bodies[placements.FindIndex(p=>Mathf.Abs(p.Position.x-8.55f)<.01f && p.Size.x>8 && p.Size.y==1)];
-            var oldUpper=upper.position;upper.GetComponent<IPushable>().Push(Vector3.forward*16,null);
-            yield return new WaitForSeconds(.8f);
+            // The grand keep's floor now flanks the deck on both sides, so a shove along the deck only wedges it.
+            // Knock out the arch it stands on instead; the deck then drops away.
+            var upperArch=map.Bodies[placements.FindIndex(p=>Mathf.Abs(p.Position.x-8.55f)<.01f && p.Size.x>8 && p.Size.y>5)];
+            // The deck rides on the arch until it jams under the wing, so the crossing counts as lost
+            // once its arch is driven out and the deck has been carried well off its ramp landing.
+            var oldUpper=upper.position;var oldArch=upperArch.position;
+            upperArch.GetComponent<IPushable>().Push(Vector3.forward*16,null);
+            yield return new WaitForSeconds(1.2f);
             float upperTravel=Vector3.Distance(upper.position,oldUpper);
+            float archTravel=Vector3.Distance(upperArch.position,oldArch);
+            bool crossingLost=archTravel>1 && upperTravel>.5f;
+            File.AppendAllText(Report,$"Upper crossing arch moved {archTravel:F2} m, deck {upperTravel:F2} m\n");
+            LogNeighbours(map,placements,"upper bridge",upper);
             yield return WalkKeep(motor,new Vector3(16,3.1f,-8.8f),new[]{new Vector3(24.3f,6,-8.8f),new Vector3(24.3f,6,-5)},result=>routes &= result,"east ascent after upper crossing loss");
             bool eliminated=false;
             void Observe(GameObject who,GameObject source){if(who==motor.gameObject)eliminated=true;}
@@ -163,8 +176,67 @@ namespace DeadlyJenga.DevTools.Editor
             Check(sculptures == 7 && seated == 7, "Seven sculpted Blender members retain individual dynamic bodies and breakable bearing seats");
             Check(outerRoute, "Survivor reaches the raised outer shelf from the new east terrace");
             Check(eastFall > .4f, "New east shelf drops after its own support breaks");
-            Check(drift<.6f && fall>.45f && walk<1.2f && bot && routes && eliminated && upperTravel>1 && carried>.5f && drop>.3f,"Intact settling, coast collapse, alternate ascent and bot smoke");
+            Check(drift<.6f && fall>.45f && walk<1.2f && bot && routes && eliminated && crossingLost,"Intact settling, coast collapse, alternate ascent and bot smoke");
             if(verifyPeers)yield return NeedlefrostPeers.Run(map,session,Check);
+            // A flying-hand grip fixture, reported on its own so it does not hide the map's physics results.
+            Check(carried>.5f && drop>.3f,"Production hand pulls the loose coast cornice outward and drops it");
+        }
+
+        // Lists the members that start inside each other and the first ones to move after load.
+        static IEnumerator AuditSettle(CastleGenerator map,System.Collections.Generic.List<CastlePlacement> placements)
+        {
+            Physics.SyncTransforms();
+            var shapes=map.Bodies.Select(b=>b.GetComponentsInChildren<Collider>().Where(c=>c.enabled && !c.isTrigger).ToArray()).ToArray();
+            int overlaps=0;
+            for(int i=0;i<shapes.Length;i++)
+            for(int j=i+1;j<shapes.Length;j++)
+            {
+                float deepest=0;
+                foreach(var a in shapes[i])
+                foreach(var b in shapes[j])
+                {
+                    if(Physics.GetIgnoreLayerCollision(a.gameObject.layer,b.gameObject.layer) || Physics.GetIgnoreCollision(a,b) || !a.bounds.Intersects(b.bounds))continue;
+                    if(Physics.ComputePenetration(a,a.transform.position,a.transform.rotation,b,b.transform.position,b.transform.rotation,out _,out float depth))
+                        deepest=Mathf.Max(deepest,depth);
+                }
+                if(deepest<.02f)continue;
+                overlaps++;
+                if(overlaps<=40)File.AppendAllText(Report,$"OVERLAP #{i} course {placements[i].Course} at {placements[i].Position} with #{j} course {placements[j].Course} at {placements[j].Position} depth {deepest:F3}\n");
+            }
+            File.AppendAllText(Report,$"Initial colliding overlaps deeper than 2 cm: {overlaps}\n");
+            var moved=new System.Collections.Generic.HashSet<int>();
+            float start=Time.time;
+            foreach(float at in new[]{.05f,.1f,.2f,.4f,.8f,1.6f,3f})
+            {
+                while(Time.time-start<at)yield return new WaitForFixedUpdate();
+                int seats=map.Bodies.Count(b=>b.GetComponents<FixedJoint>().Any(s=>s.connectedBody && s.anchor.y<-.4f));
+                File.AppendAllText(Report,$"SETTLE t={at:F2} sculpted seats {seats}\n");
+                for(int i=0;i<placements.Count;i++)
+                {
+                    float d=Vector3.Distance(map.Bodies[i].position,map.transform.TransformPoint(placements[i].Position));
+                    if(d<.1f || !moved.Add(i) || moved.Count>30)continue;
+                    File.AppendAllText(Report,$"MOVED t={at:F2} #{i} course {placements[i].Course} home {placements[i].Position} by {d:F2} velocity {map.Bodies[i].linearVelocity}\n");
+                }
+            }
+        }
+
+        // What a member touches, is jointed to or ignores, for checks that expect it to move.
+        internal static void LogNeighbours(CastleGenerator map,System.Collections.Generic.List<CastlePlacement> placements,string label,Rigidbody body)
+        {
+            foreach(var joint in body.GetComponents<Joint>())
+                File.AppendAllText(Report,$"NEAR {label} joint to {(joint.connectedBody?map.Bodies.IndexOf(joint.connectedBody).ToString():"world")}\n");
+            foreach(var own in body.GetComponentsInChildren<Collider>().Where(c=>c.enabled && !c.isTrigger))
+            {
+                var bounds=own.bounds;
+                foreach(var other in Physics.OverlapBox(bounds.center,bounds.extents+Vector3.one*.05f))
+                {
+                    if(!other.attachedRigidbody || other.attachedRigidbody==body)continue;
+                    int index=map.Bodies.IndexOf(other.attachedRigidbody);
+                    bool touching=Physics.ComputePenetration(own,own.transform.position,own.transform.rotation,
+                        other,other.transform.position,other.transform.rotation,out _,out float depth);
+                    File.AppendAllText(Report,$"NEAR {label} {own.name} touches #{index} course {(index>=0?placements[index].Course:-1)} {other.name} ignored {Physics.GetIgnoreCollision(own,other)} depth {(touching?depth:0):F3}\n");
+                }
+            }
         }
 
         static IEnumerator WalkKeep(CastleSurvivor motor,Vector3 start, Vector3[] goals,System.Action<bool> result,string label)

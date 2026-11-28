@@ -88,8 +88,84 @@ namespace DeadlyJenga.CastlePrototype
                 var joint = body.gameObject.AddComponent<FixedJoint>();
                 joint.connectedBody = bodies[seat];
                 joint.anchor = new Vector3(0, -.5f, 0);
-                joint.breakForce = Mathf.Clamp(body.mass * 50, 11000, 82000);
-                joint.breakTorque = joint.breakForce * .45f;
+                SetIceStrength(joint, body.mass);
+            }
+
+            // A spire standing on a sculpted roof's peak is frozen onto it in the same way.
+            for (int i = 0; i < layout.Count; i++)
+            {
+                var crest = layout[i];
+                if (crest.Course >= FirstBlenderRoof) continue;
+                var bottom = crest.Position - crest.Size * .5f;
+                var top = crest.Position + crest.Size * .5f;
+                for (int j = 0; j < layout.Count; j++)
+                {
+                    var roof = layout[j];
+                    if (roof.Course < FirstBlenderRoof) continue;
+                    var peak = roof.Position + roof.Size * .5f;
+                    var low = roof.Position - roof.Size * .5f;
+                    if (Mathf.Abs(peak.y - bottom.y) > .055f || top.x <= low.x || bottom.x >= peak.x
+                        || top.z <= low.z || bottom.z >= peak.z) continue;
+                    var joint = bodies[i].gameObject.AddComponent<FixedJoint>();
+                    joint.connectedBody = bodies[j];
+                    joint.anchor = new Vector3(0, -.5f, 0);
+                    SetIceStrength(joint, bodies[i].mass);
+                    break;
+                }
+            }
+        }
+
+        // The seam holds about five times the member's weight and an overhang of a metre.
+        // A push, impact or disaster that moves the member sharply still shears it.
+        static void SetIceStrength(FixedJoint joint, float mass)
+        {
+            joint.breakForce = Mathf.Max(11000, mass * 50);
+            joint.breakTorque = joint.breakForce;
+        }
+
+        // Engaged turrets and roofs are carved into their neighbours. Those pairs start inside each
+        // other, and pushing them apart at load throws the tower tops off. Let such pairs pass through
+        // each other. Pieces resting on top of each other (a shallow, vertical overlap) still collide.
+        internal static List<Vector2Int> ReleaseEngagedMembers(List<Rigidbody> bodies)
+        {
+            Physics.SyncTransforms();
+            var shapes = new Collider[bodies.Count][];
+            for (int i = 0; i < bodies.Count; i++)
+                shapes[i] = Array.FindAll(bodies[i].GetComponentsInChildren<Collider>(), c => c.enabled && !c.isTrigger);
+            var pairs = new List<Vector2Int>();
+            for (int i = 0; i < shapes.Length; i++)
+            for (int j = i + 1; j < shapes.Length; j++)
+            {
+                bool engaged = false;
+                foreach (var a in shapes[i])
+                foreach (var b in shapes[j])
+                {
+                    if (Physics.GetIgnoreLayerCollision(a.gameObject.layer, b.gameObject.layer) || !a.bounds.Intersects(b.bounds)) continue;
+                    if (!Physics.ComputePenetration(a, a.transform.position, a.transform.rotation,
+                            b, b.transform.position, b.transform.rotation, out var direction, out float depth)) continue;
+                    if (depth <= .04f && (depth <= .01f || Mathf.Abs(direction.y) >= .7f)) continue;
+                    Physics.IgnoreCollision(a, b);
+                    engaged = true;
+                }
+                if (engaged) pairs.Add(new Vector2Int(i, j));
+            }
+            return pairs;
+        }
+
+        // Up in the palace, the carved-in pieces are one frame: tie each engaged pair with a
+        // breakable joint so an overhanging blade or wing cannot slowly peel away from it.
+        internal static void TieEngagedMembers(List<CastlePlacement> layout, List<Rigidbody> bodies, List<Vector2Int> pairs)
+        {
+            // The palace begins at the grand keep's first floor; bridge decks and courts below stay free.
+            const float palaceFloor = 16;
+            foreach (var pair in pairs)
+            {
+                var a = layout[pair.x];
+                var b = layout[pair.y];
+                if (a.Position.y - a.Size.y * .5f < palaceFloor || b.Position.y - b.Size.y * .5f < palaceFloor) continue;
+                var joint = bodies[pair.x].gameObject.AddComponent<FixedJoint>();
+                joint.connectedBody = bodies[pair.y];
+                SetIceStrength(joint, Mathf.Max(bodies[pair.x].mass, bodies[pair.y].mass));
             }
         }
 
