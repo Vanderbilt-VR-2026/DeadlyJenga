@@ -77,10 +77,15 @@ namespace DeadlyJenga.World.Hazards.Editor
                 box.isTrigger = false;
                 Require(!MapHazard.ValidBounds(castle.PlayableBounds), "Non-trigger override was accepted.");
                 var sample = new WaveFrame { center = new Vector3(40, 0, -30), direction = Vector3.forward, width = 80, depth = 20, height = 15, waterHeight = .08f };
-                Require(Mathf.Abs(TsunamiHazard.SurfaceHeight(sample, sample.center + Vector3.forward * 4.4f) - 15.08f) < .001f, "Crest height does not match the profile.");
+                float crestAlong = TsunamiProfile.Available ? TsunamiProfile.CrestAlong * sample.depth : 4.4f;
+                float expected = sample.waterHeight + sample.height * (TsunamiProfile.Available ? TsunamiProfile.Envelope(TsunamiProfile.CrestAlong, 0) : 1);
+                Require(Mathf.Abs(TsunamiHazard.SurfaceHeight(sample, sample.center + Vector3.forward * crestAlong) - expected) < .001f, "Crest height does not match the profile.");
+                Require(!TsunamiProfile.Available || TsunamiProfile.Envelope(TsunamiProfile.CrestAlong, 0) <= 1.0001f, "Profile exceeds the wave height used by the push query.");
                 Require(float.IsNegativeInfinity(TsunamiHazard.SurfaceHeight(sample, sample.center + Vector3.right * 50)), "Outside-width target was submerged.");
                 Require(float.IsNegativeInfinity(TsunamiHazard.SurfaceHeight(sample, sample.center + Vector3.forward * 11)), "Outside-depth target was submerged.");
                 Debug.Log("Disaster map contract checks passed: map bounds, lifecycle, translated wave profile and collider override.");
+                // Batch runs (-executeMethod) must quit on success; a thrown check already exits with code 1.
+                if (Application.isBatchMode) EditorApplication.delayCall += () => EditorApplication.Exit(0);
             }
             finally
             {

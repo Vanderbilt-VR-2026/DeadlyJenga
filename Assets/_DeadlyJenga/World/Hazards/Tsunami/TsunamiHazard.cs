@@ -36,8 +36,19 @@ namespace DeadlyJenga.World.Hazards
         [Header("Intensity multipliers")]
         [Range(0, 1)] public float heightIntensity = .5f;
         [Range(0, 1)] public float forceIntensity = 1;
+        [Header("Obstacles")]
+        [Tooltip("Fraction of the push removed directly behind an intact obstacle (a tower or anchored block). 0 = off.")]
+        [Range(0, 1)] public float obstacleShelter = .6f;
+        [Tooltip("Metres behind an obstacle over which the water around refills the gap and the shelter fades.")]
+        [Min(.5f)] public float shelterRefill = 7;
 
         readonly Dictionary<object, (Target target, float submerged)> wetTargets = new();
+        // Shelter grid in wave space (across x along); water flows toward +along. Per wet receiver, the union of
+        // all its wet colliders: along span, across span (metres) and its lowest point.
+        const int ShelterX = 128, ShelterY = 48;
+        readonly float[] shelterWeight = new float[ShelterX * ShelterY], shelterTop = new float[ShelterX * ShelterY];
+        struct WetPlace { public float alongMin, alongMax, acrossMin, acrossMax, bottom; }
+        readonly Dictionary<object, WetPlace> wetPlaces = new();
         sealed class Target
         {
             public IPushable push;
@@ -153,8 +164,10 @@ namespace DeadlyJenga.World.Hazards
                 if (count < hits.Length || hits.Length >= 32768) break;
                 System.Array.Resize(ref hits, hits.Length * 2);
             } while (true);
-            wetTargets.Clear();
-            float crest = depth * .22f;
+            wetTargets.Clear(); wetPlaces.Clear();
+            bool shelterOn = obstacleShelter > 0;
+            if (shelterOn) { System.Array.Clear(shelterWeight, 0, shelterWeight.Length); System.Array.Clear(shelterTop, 0, shelterTop.Length); }
+            float crest = depth * TsunamiProfile.CrestAlong;
             float flatWidth = width * .425f;
             float maximumSurface = water + Wave.height;
             for (int i = 0; i < count; i++)
@@ -182,7 +195,7 @@ namespace DeadlyJenga.World.Hazards
                     // Projected AABB intervals bound the best surface any point on this collider can reach.
                     float halfAlong = Vector3.Dot(bounds.extents, alongExtents);
                     float bestAlong = Mathf.Clamp(crest, along - halfAlong, along + halfAlong);
-                    float bestLateral = Mathf.Max(0, Mathf.Abs(lateral) - Vector3.Dot(bounds.extents, acrossExtents));
+                    float bestLateral = Mathf.Sign(lateral) * Mathf.Max(0, Mathf.Abs(lateral) - Vector3.Dot(bounds.extents, acrossExtents));
                     if (SurfaceHeight(Wave, bestAlong, bestLateral) > Mathf.Max(surface, bounds.min.y))
                     {
                         var sample = point + direction * (crest - along) + across * (Mathf.Clamp(lateral, -flatWidth, flatWidth) - lateral);
@@ -196,6 +209,26 @@ namespace DeadlyJenga.World.Hazards
                 if (submerged <= 0 || respectShelter && world.IsSheltered(point)) continue;
                 if (!alreadyWet || submerged > previous.submerged)
                     wetTargets[receiver] = (target, submerged);
+                if (shelterOn)
+                {
+                    float hA = Vector3.Dot(bounds.extents, alongExtents), hX = Vector3.Dot(bounds.extents, acrossExtents);
+                    var place = new WetPlace { alongMin = along - hA, alongMax = along + hA, acrossMin = lateral - hX, acrossMax = lateral + hX, bottom = bounds.min.y };
+                    if (wetPlaces.TryGetValue(receiver, out var known))
+                    {
+                        place.alongMin = Mathf.Min(place.alongMin, known.alongMin); place.alongMax = Mathf.Max(place.alongMax, known.alongMax);
+                        place.acrossMin = Mathf.Min(place.acrossMin, known.acrossMin); place.acrossMax = Mathf.Max(place.acrossMax, known.acrossMax);
+                        place.bottom = Mathf.Min(place.bottom, known.bottom);
+                    }
+                    wetPlaces[receiver] = place;
+                    // Anchored blocks shelter what is behind them; blocks already riding the wave do not.
+                    var body = target.body;
+                    if (body && collider.gameObject.layer == Layers.Block)
+                    {
+                        float carried = body.isKinematic ? 0 : Mathf.Clamp01(Vector3.Dot(body.linearVelocity, direction) / Mathf.Max(1, Wave.speed));
+                        float weight = 1 - carried;
+                        if (weight > .15f) MarkShelter(along, lateral, Vector3.Dot(bounds.extents, alongExtents), Vector3.Dot(bounds.extents, acrossExtents), weight, bounds.max.y);
+                    }
+                }
             }
             LastTargetCount = wetTargets.Count;
             foreach (var (target, submerged) in wetTargets.Values)
@@ -206,12 +239,52 @@ namespace DeadlyJenga.World.Hazards
                 resistance = Mathf.Max(.1f, resistance);
                 Vector3 velocity = target.motion?.HazardVelocity ?? (body ? body.linearVelocity : Vector3.zero);
                 float force = forceScale * submerged * Time.fixedDeltaTime / resistance;
+                if (shelterOn) force *= 1 - obstacleShelter * Shelter(target.push != null ? target.push : target.damage);
                 float carried = new Vector2(Mathf.Max(0, Vector3.Dot(velocity, direction)), Mathf.Max(0, velocity.y)).magnitude;
                 var push = Vector3.ClampMagnitude((direction * pushAcceleration + Vector3.up * liftAcceleration) * force,
                     Mathf.Max(0, maximumCarriedSpeed - carried));
                 if (push.sqrMagnitude > .000001f) target.push?.Push(push, gameObject);
                 if (damagePerSecond > 0) target.damage?.Damage(damagePerSecond * forceScale * submerged * Time.fixedDeltaTime, gameObject);
             }
+        }
+
+        void MarkShelter(float along, float lateral, float halfAlong, float halfAcross, float weight, float top)
+        {
+            int y0 = Mathf.Max(0, Mathf.FloorToInt(((along - halfAlong) / depth + .5f) * ShelterY)), y1 = Mathf.Min(ShelterY - 1, Mathf.FloorToInt(((along + halfAlong) / depth + .5f) * ShelterY));
+            int x0 = Mathf.Max(0, Mathf.FloorToInt(((lateral - halfAcross) / width + .5f) * ShelterX)), x1 = Mathf.Min(ShelterX - 1, Mathf.FloorToInt(((lateral + halfAcross) / width + .5f) * ShelterX));
+            for (int y = y0; y <= y1; y++)
+                for (int x = x0; x <= x1; x++)
+                {
+                    int i = y * ShelterX + x;
+                    shelterWeight[i] = Mathf.Max(shelterWeight[i], weight);
+                    shelterTop[i] = Mathf.Max(shelterTop[i], top);
+                }
+        }
+
+        // 0..1: how much an intact obstacle upstream (and at least as tall) blocks the water reaching this receiver.
+        float Shelter(object receiver)
+        {
+            if (receiver == null || !wetPlaces.TryGetValue(receiver, out var place)) return 0;
+            // Only cells strictly upstream of the receiver's own front face, and only across its own width.
+            int front = Mathf.FloorToInt((place.alongMin / depth + .5f) * ShelterY) - 1;
+            int reach = Mathf.CeilToInt(shelterRefill / depth * ShelterY);
+            float inset = width / ShelterX * .5f;   // ignore cells it merely grazes at its sides
+            int x0 = Mathf.Max(0, Mathf.FloorToInt(((place.acrossMin + inset) / width + .5f) * ShelterX));
+            int x1 = Mathf.Min(ShelterX - 1, Mathf.FloorToInt(((place.acrossMax - inset) / width + .5f) * ShelterX));
+            if (x1 < x0) x0 = x1 = Mathf.Clamp(Mathf.FloorToInt(((place.acrossMin + place.acrossMax) * .5f / width + .5f) * ShelterX), 0, ShelterX - 1);
+            float best = 0;
+            for (int k = 0; k < reach; k++)
+            {
+                int y = front - k;
+                if (y < 0) break;
+                float fade = 1 - k / (float)(reach + 1);
+                for (int x = x0; x <= x1; x++)
+                {
+                    int i = y * ShelterX + x;
+                    if (shelterWeight[i] > 0 && shelterTop[i] > place.bottom + .3f) best = Mathf.Max(best, shelterWeight[i] * fade);
+                }
+            }
+            return best;
         }
 
         public static float SurfaceHeight(WaveFrame wave, Vector3 point)
@@ -226,6 +299,8 @@ namespace DeadlyJenga.World.Hazards
             float halfWidth = wave.width * .5f, x = Mathf.Abs(lateral);
             float t = along / wave.depth + .5f;
             if (t <= 0 || t >= 1 || x >= halfWidth) return float.NegativeInfinity;
+            if (TsunamiProfile.Available)
+                return wave.waterHeight + wave.height * TsunamiProfile.Envelope(along / wave.depth, lateral / wave.width);
             float shape = t < .72f ? Mathf.SmoothStep(0, 1, t / .72f) : 1 - Mathf.SmoothStep(0, 1, (t - .72f) / .28f);
             float edge = x <= halfWidth * .85f ? 1 : 1 - Mathf.SmoothStep(0, 1, (x / halfWidth - .85f) / .15f);
             return wave.waterHeight + wave.height * shape * edge;

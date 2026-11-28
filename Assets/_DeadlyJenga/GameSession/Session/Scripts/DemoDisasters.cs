@@ -80,6 +80,26 @@ namespace DeadlyJenga.CastlePrototype
         }
 
         public static string Label(GameObject prefab) => prefab ? prefab.GetComponent<IHazard>()?.Type?.name ?? prefab.name : "Missing disaster prefab";
+
+        public static string Description(GameObject prefab)
+        {
+            if (!prefab) return "Missing disaster prefab.";
+            string key = (prefab.GetComponent<IHazard>()?.Type?.name ?? prefab.name ?? "").ToLowerInvariant();
+            if (key.Contains("acid")) return "Corrosive rain erodes exposed blocks and drains nearby players until clear skies return.";
+            if (key.Contains("antigrav") || key.Contains("anti-grav") || key.Contains("anti grav")) return "Reverses gravity across the arena, lifting loose blocks and survivors skyward.";
+            if (key.Contains("quake")) return "Rolling tremors shake every tower, rattling joints loose and toppling unstable blocks.";
+            if (key.Contains("fire")) return "Ignites blocks and spreads flames across nearby structures until burned out or stopped.";
+            if (key.Contains("ice") || key.Contains("frost")) return "Coats towers in slick ice and hanging icicles, making every ledge treacherous.";
+            if (key.Contains("planet") || key.Contains("killer")) return "Calls down a colossal meteor whose shockwave shatters wide sections of the arena.";
+            if (key.Contains("meteor")) return "Rains flaming meteors from the sky, smashing towers on impact and scattering debris.";
+            if (key.Contains("outage") || key.Contains("power")) return "Cuts arena lighting into darkness while survivors scramble to hold their footing.";
+            if (key.Contains("tornado")) return "A sweeping funnel cloud tears across the island, ripping blocks loose into the sky.";
+            if (key.Contains("tsunami") || key.Contains("wave")) return "A towering ocean wall surges over the arena, sweeping away low structures and players.";
+            if (key.Contains("kraken")) return "Giant tentacles erupt from the water, slamming towers and dragging debris into the sea.";
+            if (key.Contains("vampire")) return "A blood-moon curse drains survivors caught in the open away from safe high ground.";
+            if (key.Contains("dragon")) return "A swooping dragon strafes the towers with fiery breath and knocks loose high perches.";
+            return "Triggers an arena-wide hazard that damages structures and tests surviving players.";
+        }
         public static bool CanTrigger(CastlePlaySession session) => SessionDevelopmentPolicy.CanRequestLocal(session);
 
         public static string Request(CastlePlaySession session, GameObject prefab)

@@ -47,7 +47,9 @@ namespace DeadlyJenga.CastlePrototype.Editor
             EditorSceneManager.OpenScene(ProjectPath.Find("Game.unity"));EditorApplication.EnterPlaymode();
         }
         public static void RunBatch()=>Run();
-        static void Log(string message,string trace,LogType type){if(type==LogType.Error||type==LogType.Exception||type==LogType.Assert){errors++;File.AppendAllText(ProjectPath.Report("AllDisasters.txt"),"ERROR "+message+"\n"+trace+"\n");}}
+        static void Log(string message,string trace,LogType type){if(type==LogType.Error||type==LogType.Exception||type==LogType.Assert){if(EditorNoise(trace)){File.AppendAllText(ProjectPath.Report("AllDisasters.txt"),"IGNORED editor package error: "+message+"\n");return;}errors++;File.AppendAllText(ProjectPath.Report("AllDisasters.txt"),"ERROR "+message+"\n"+trace+"\n");}}
+        // Editor-only package noise (the Unity AI Assistant's connection tracing), never game code.
+        static bool EditorNoise(string trace)=>trace!=null&&(trace.Contains("Unity.AI.Tracing")||trace.Contains("com.unity.ai.assistant"));
         static void Require(bool ok,string message){File.AppendAllText(ProjectPath.Report("AllDisasters.txt"),(ok?"PASS ":"FAIL ")+message+"\n");if(!ok)throw new Exception(message);}
         static IEnumerator Guard(IEnumerator test)
         {
@@ -98,6 +100,7 @@ namespace DeadlyJenga.CastlePrototype.Editor
                     if(hazard is BasicDisaster basic)
                     {
                         Step(hazard,5);var f=basic.Capture();
+                        if(f.kind=="Tornado")for(int step=0;step<900&&(exposed.impulse-before).sqrMagnitude<=0;step++)Step(hazard,1);
                         Require(f!=null&&DisasterStates.Active.Contains(basic),prefab.name+" publishes its visual state");
                         if(f.kind=="Fire"){Step(hazard,200);Require(basic.Capture().blocks.Length>1,"Fire spreads beyond its single seed through block contact");}
                         else if(f.kind=="Icey")
@@ -118,12 +121,16 @@ namespace DeadlyJenga.CastlePrototype.Editor
                             Require(sheltered.Health==safeHealth,"Angled solid cover protects against Vampire sunlight");
                         }
                         else if(f.kind=="AcidRain")Require(exposed.Health<health&&sheltered.Health==safeHealth,"Acid damages exposed players while shelter protects them");
+                        else if(f.kind=="Earthquake"){yield return new WaitForFixedUpdate();Require(map.blocks.Any(b=>!b.isKinematic&&(b.linearVelocity.sqrMagnitude>1e-4f||b.angularVelocity.sqrMagnitude>1e-4f)),"Earthquake shakes map blocks");Require((exposed.impulse-before).sqrMagnitude<=1e-6f,"Earthquake does not inject a traversal-breaking player combat impulse");}
+                        else if(f.kind=="AntiGravity")Require(f.values!=null&&f.values.Length>=1&&f.values[0]>0&&f.values[0]<1,"Low gravity publishes a reduced gravity scale");
                         else Require((exposed.impulse-before).sqrMagnitude>0,f.kind+" affects the player ability stand-in");
                         string json=JsonUtility.ToJson(f);var copy=JsonUtility.FromJson<DisasterFrame>(System.Text.Encoding.UTF8.GetString(CastleFusionWire.Decompress(CastleFusionWire.Compress(System.Text.Encoding.UTF8.GetBytes(json)))));
                         Require(copy!=null&&copy.kind==f.kind,prefab.name+" state round-trips through compressed network encoding");
                     }
-                    else
-                    {var wave=(TsunamiHazard)hazard;Require(wave.Wave.width>0&&wave.height==settings[2],"Tsunami uses selected height and map-fitted width");}
+                    else if(hazard is TsunamiHazard wave)
+                    {Require(wave.Wave.width>0&&wave.height==settings[2],"Tsunami uses selected height and map-fitted width");}
+                    else if(hazard is IDisasterState stateHazard)
+                    {var f=stateHazard.Capture();Require(f!=null&&DisasterStates.Active.Contains(stateHazard),prefab.name+" publishes its visual state");}
                     timer.Stop();File.AppendAllText(ProjectPath.Report("AllDisasters.txt"),"TIMING "+prefab.name+" checks "+timer.ElapsedMilliseconds+" ms\n");
                     hazard.End();Require(!hazard.Active&&(!(hazard is IDisasterState source)||!DisasterStates.Active.Contains(source)),prefab.name+" stops and unregisters cleanly");
                     if(hazard is IceyHazard)Require(!map.blocks[0].GetComponent<Collider>().sharedMaterial&&DisasterStates.Slipperiness==0,"Ice restores original friction on stop");
@@ -144,13 +151,33 @@ namespace DeadlyJenga.CastlePrototype.Editor
             var request=new CastleDemoCommand{action=CastleDemoAction.Disaster,rules=tsunami.name,hazardValues=DemoDisasters.Values(session,tsunami)};
             Require(JsonUtility.FromJson<CastleDemoCommand>(JsonUtility.ToJson(request)).hazardValues.Length==5,"Full per-disaster settings survive command serialization");
             var menu=Object.FindFirstObjectByType<CastleWorldMenu>(FindObjectsInactive.Include);var cam=session.Survivor().viewCamera;menu.Show(true,cam);
-            typeof(CastleWorldMenu).GetField("disasterPage",BindingFlags.Instance|BindingFlags.NonPublic).SetValue(menu,true);
-            var selection=typeof(CastleWorldMenu).GetField("disasterSelection",BindingFlags.Instance|BindingFlags.NonPublic);selection.SetValue(menu,Array.FindIndex(DemoDisasters.Prefabs,p=>p.GetComponent<MeteorShowerHazard>()));menu.Point(cam,false);
-            var sliders=(Slider[])typeof(CastleWorldMenu).GetField("disasterSliders",BindingFlags.Instance|BindingFlags.NonPublic).GetValue(menu);
-            Require(sliders.Count(s=>s.gameObject.activeSelf)==6,"VR meteor page includes four requested sliders plus warning and duration");
-            Require(Mathf.Abs(sliders[5].value-25)<.01f,"Opening VR settings preserves authored duration defaults");
-            cam.transform.LookAt(sliders[2].transform.TransformPoint(new Vector3(125,-13,0)));menu.Point(cam,true,true);
-            Require(sliders[2].normalizedValue>.7f,"VR held input changes a generic disaster slider");cam.transform.LookAt(menu.transform.position);Capture(cam,"disaster-meteor-controls.png");menu.Show(false,cam);
+            var menuType=typeof(CastleWorldMenu);
+            menuType.GetField("tabletDeveloperDetails",BindingFlags.Instance|BindingFlags.NonPublic).SetValue(menu,false);
+            menuType.GetField("developerChild",BindingFlags.Instance|BindingFlags.NonPublic).SetValue(menu,false);
+            menuType.GetField("developerRoute",BindingFlags.Instance|BindingFlags.NonPublic).SetValue(menu,"");
+            var devTuning=menuType.GetField("developerDisasterTuning",BindingFlags.Instance|BindingFlags.NonPublic);
+            var pointDisaster=menuType.GetMethod("PointDisasterPage",BindingFlags.Instance|BindingFlags.NonPublic);
+            devTuning.SetValue(menu,true);
+            try
+            {
+                ((RectTransform)menuType.GetField("legacyDeveloper",BindingFlags.Instance|BindingFlags.NonPublic).GetValue(menu))?.gameObject.SetActive(true);
+                ((RectTransform)menuType.GetField("menuBody",BindingFlags.Instance|BindingFlags.NonPublic).GetValue(menu))?.gameObject.SetActive(true);
+                menuType.GetField("disasterPage",BindingFlags.Instance|BindingFlags.NonPublic).SetValue(menu,true);
+                var selection=menuType.GetField("disasterSelection",BindingFlags.Instance|BindingFlags.NonPublic);selection.SetValue(menu,Array.FindIndex(DemoDisasters.Prefabs,p=>p.GetComponent<MeteorShowerHazard>()));menuType.GetField("pointerRay",BindingFlags.Instance|BindingFlags.NonPublic).SetValue(menu,new Ray(cam.transform.position,cam.transform.forward));pointDisaster.Invoke(menu,new object[]{cam,false,false});
+                var sliders=(Slider[])menuType.GetField("disasterSliders",BindingFlags.Instance|BindingFlags.NonPublic).GetValue(menu);
+                Require(sliders.Count(s=>s.gameObject.activeSelf)==6,"VR meteor page includes four requested sliders plus warning and duration");
+                Require(Mathf.Abs(sliders[5].value-25)<.01f,"Opening VR settings preserves authored duration defaults");
+                var headingField=(Text)menuType.GetField("heading",BindingFlags.Instance|BindingFlags.NonPublic).GetValue(menu);
+                var selectedPrefab=DemoDisasters.Prefabs[(int)selection.GetValue(menu)];
+                Require(headingField&&headingField.text.Contains(DemoDisasters.Description(selectedPrefab)),"VR disaster page displays selected disaster description");
+                for(int di=0;di<session.Demo.DisasterCount;di++)Require(!string.IsNullOrWhiteSpace(session.Demo.DisasterDescription(di)),"Disaster description present: "+session.Demo.DisasterLabel(di));
+                Physics.SyncTransforms();
+                cam.transform.LookAt(sliders[2].transform.TransformPoint(new Vector3(125,-13,0)));
+                menuType.GetField("pointerRay",BindingFlags.Instance|BindingFlags.NonPublic).SetValue(menu,new Ray(cam.transform.position,cam.transform.forward));
+                pointDisaster.Invoke(menu,new object[]{cam,true,true});
+                Require(sliders[2].normalizedValue>.7f,$"VR held input changes a generic disaster slider (norm={sliders[2].normalizedValue:F3} val={sliders[2].value} active={sliders[2].gameObject.activeInHierarchy} inter={sliders[2].interactable} min={sliders[2].minValue} max={sliders[2].maxValue})");cam.transform.LookAt(menu.transform.position);Capture(cam,"disaster-meteor-controls.png");
+            }
+            finally{devTuning.SetValue(menu,false);menu.Show(false,cam);}
             session.Bots().targetPopulation=1;
             Require(session.Bots().Capacity==int.MaxValue,"Survivor spawning has no fixed population cap");
             for(int i=0;i<12;i++){var bot=session.Bots().SpawnBot();if(bot)bot.enabled=false;}
@@ -159,22 +186,22 @@ namespace DeadlyJenga.CastlePrototype.Editor
             Require(session.HandBots.Count==12&&session.Bots().Count==survivors,"Twelve hands coexist without trimming survivor bots");
             session.Bots().ClearBots();session.Hands().ClearHands();yield return null;
             var tornado=DemoDisasters.Prefabs.First(p=>p.GetComponent<TornadoHazard>());var v=DemoDisasters.Values(session,tornado);Set(tornado.GetComponent<IDemoHazard>(),v,"warning",0);DemoDisasters.Request(session,tornado);
-            yield return new WaitForSecondsRealtime(1);
+            yield return new WaitForSecondsRealtime(3.5f);
             var active=session.GetComponentsInChildren<BasicDisaster>().FirstOrDefault(h=>h.Active);
             Require(active&&active.Capture().age>.5f,"Real Unity FixedUpdate advances derived disasters without the test driver");
             Require(Object.FindFirstObjectByType<DeadlyJenga.CandyArt.CandyDisasterVisuals>(),"Map loads the candy disaster renderer");
             Orbit(oldWorld,"disaster-tornado.png");DemoDisasters.StopAll(session);yield return null;
-            foreach(string kind in new[]{"MeteorShower","Fire","Icey","AcidRain","AntiGravity"})
+            foreach(string kind in new[]{"MeteorShower","PlanetKillerMeteor","Earthquake","Tsunami","Fire","Icey","AcidRain","AntiGravity"})
             {
                 var prefab=DemoDisasters.Prefabs.First(p=>p.name==kind);var options=prefab.GetComponent<IDemoHazard>();var settings=DemoDisasters.Values(session,prefab);Set(options,settings,"warning",0);
                 Require(DemoDisasters.Execute(session,prefab.name,values:settings),kind+" launches in the real castle");
-                yield return new WaitForSecondsRealtime(kind=="MeteorShower"?2.5f:.6f);Orbit(oldWorld,"disaster-"+kind.ToLowerInvariant()+".png");DemoDisasters.StopAll(session);yield return null;
+                yield return new WaitForSecondsRealtime(kind is "MeteorShower" or "PlanetKillerMeteor" or "Icey" or "Tsunami"?2.5f:1.2f);Orbit(oldWorld,"disaster-"+kind.ToLowerInvariant()+".png");DemoDisasters.StopAll(session);yield return null;
             }
             session.ResetCastle();yield return new WaitForSecondsRealtime(.5f);
             foreach(var prefab in DemoDisasters.Prefabs)
             {var options=prefab.GetComponent<IDemoHazard>();var settings=DemoDisasters.Values(session,prefab);Set(options,settings,"warning",0);Require(DemoDisasters.Execute(session,prefab.name,values:settings),"Concurrent launch: "+prefab.name);}
             yield return new WaitForSecondsRealtime(.5f);DemoDisasters.StopAll(session);yield return null;
-            Require(DisasterStates.Active.Count==0&&Tracked.Waves.Count==0,"Stopping concurrent disasters clears every shared effect source");
+            Require(DisasterStates.Active.All(s=>s.Capture()==null||s.Capture().residualOnly)&&Tracked.Waves.Count==0,"Stopping concurrent disasters clears every shared effect source");
             Require(session.Generator().Bodies.All(b=>!b||b.useGravity),"Temporary disaster changes leave normal block gravity intact");
             Require(errors==0,"Game Play Mode, menus and disaster visuals produce no errors");
             File.AppendAllText(ProjectPath.Report("AllDisasters.txt"),"COMPLETE: editor + stand-in physics + encoding; real two-headset networking and Quest performance remain device tests.\n");

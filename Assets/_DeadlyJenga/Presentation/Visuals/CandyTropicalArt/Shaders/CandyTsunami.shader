@@ -13,6 +13,8 @@ Shader "Candy Tropical/Tsunami"
         _Glints("Sun sparkle",Range(0,1))=.3
         _Shine("Candy gloss",Range(0,1))=.85
         _FoamStrength("Gentle crest foam",Range(0,1))=.2
+        _Opaque("Solid skin (sand, snow, lava)",Range(0,1))=0
+        _Lava("Glowing lava cracks",Range(0,1))=0
         _WaveHeight("Wave height (metres)",Range(0,.5))=.32
         _WaveSpeed("Rolling wave speed",Range(0,2))=.9
         _WaveChop("Wave roundness",Range(0,1))=.4
@@ -49,7 +51,7 @@ Shader "Candy Tropical/Tsunami"
             CBUFFER_START(UnityPerMaterial)
             float4 _Shallow,_Deep,_Foam,_Reflection,_Horizon,_Island;
             float4 _TerrainBounds;
-            float _RippleScale,_Speed,_Glints,_Shine,_FoamStrength;
+            float _RippleScale,_Speed,_Glints,_Shine,_FoamStrength,_Opaque,_Lava;
             float4 _SurgeOrigin, _SurgeDirection;
             float _SurgeWidth, _SurgeDepth, _SurgeHeight;
             float _WaveHeight,_WaveSpeed,_WaveChop,_WaveExtent,_Submersion,_SandTop,_SandDepth,_Plateau,_WaterHeight,_HasTerrain;
@@ -58,7 +60,7 @@ Shader "Candy Tropical/Tsunami"
             TEXTURE2D(_TerrainHeight);SAMPLER(sampler_TerrainHeight);
             TEXTURE2D(_FoamDetail);SAMPLER(sampler_FoamDetail);
             struct Attributes{float4 positionOS:POSITION;UNITY_VERTEX_INPUT_INSTANCE_ID};
-            struct Varyings{float4 positionCS:SV_POSITION;float3 world:TEXCOORD0;float3 normal:TEXCOORD1;float wave:TEXCOORD2;float fog:TEXCOORD3;float2 uv:TEXCOORD4;float whitewater:TEXCOORD5;float bulk:TEXCOORD6;float cap:TEXCOORD7;UNITY_VERTEX_OUTPUT_STEREO};
+            struct Varyings{float4 positionCS:SV_POSITION;float3 world:TEXCOORD0;float3 normal:TEXCOORD1;float wave:TEXCOORD2;float fog:TEXCOORD3;float2 uv:TEXCOORD4;float whitewater:TEXCOORD5;float bulk:TEXCOORD6;float cap:TEXCOORD7;float ripple:TEXCOORD8;UNITY_VERTEX_OUTPUT_STEREO};
             float IslandDistance(float2 world)
             {
                 float2 q=(world-_Island.xy)/max(_Island.zw,float2(1,1));float a=atan2(q.y,q.x);
@@ -85,6 +87,11 @@ Shader "Candy Tropical/Tsunami"
             }
             float3 SurgePoint(float2 uv)
             {
+                if(_SurgeProfileReady>.5)
+                {
+                    float2 q=CandySurgeProfile(uv.y+.5,uv.x);
+                    return float3(uv.x*_SurgeWidth,q.y*_SurgeHeight,q.x*_SurgeDepth);
+                }
                 float phase=uv.y+.5;
                 phase+=.09*sin(uv.x*_SurgeWidth*.075-_Time.y*.5)*sin(3.14159265*phase)*smoothstep(.35,1,phase);
                 float2 curve=CandySurgeCurve(phase);
@@ -111,12 +118,16 @@ Shader "Candy Tropical/Tsunami"
                 float bulk=cap>.5?i.positionOS.z:step(1.5,i.positionOS.y);
                 float3 local=SurfacePoint(uv,bulk);
                 if(whitewater>.5)local=float3(uv.x*_SurgeWidth,.18,(uv.y*.85+.58)*_SurgeDepth);
+                // Obstacle ripple: pile-up on upstream faces, dips in the lee, refilled by the water around.
+                float ripple=CandySurgeRipple(local.x,local.z);
+                local.y+=ripple*_SurgeHeight*.45*smoothstep(.02,.2,local.y/max(.01,_SurgeHeight));
                 float y=local.y;
                 // Extended ocean apron must stay flat outside the original wave span.
                 if(uv.y<-.5||uv.y>.5)local.z=uv.y*_SurgeDepth;
                 float3 world=TransformObjectToWorld(local);
-                float3 tx=SurfacePoint(uv+float2(.001,0),bulk)-SurfacePoint(uv-float2(.001,0),bulk);
-                float3 tz=SurfacePoint(uv+float2(0,.001),bulk)-SurfacePoint(uv-float2(0,.001),bulk);
+                float fd=_SurgeProfileReady>.5?.006:.001;   // half a profile texel keeps normals smooth
+                float3 tx=SurfacePoint(uv+float2(fd,0),bulk)-SurfacePoint(uv-float2(fd,0),bulk);
+                float3 tz=SurfacePoint(uv+float2(0,fd),bulk)-SurfacePoint(uv-float2(0,fd),bulk);
                 float3 surfaceNormal=normalize(cross(tz,tx)+float3(0,.000001,0));
                 float3 n=TransformObjectToWorldNormal(cap>.5?normalize(float3(side,0,0)*.7+surfaceNormal*.3):surfaceNormal);
                 float3 offset=0,dx=float3(1,0,0),dz=float3(0,0,1);
@@ -128,7 +139,7 @@ Shader "Candy Tropical/Tsunami"
                 Wave(float2(-.6,.8),7.5,amplitude*.3,p,time*.87,offset,dx,dz);
                 Wave(float2(.24,-.971),17,amplitude*.15,p,time*.68,offset,dx,dz);
                 float3 wake=CandySurgeWakeSample(world.xz);
-                o.world=world+offset+float3(0,wake.x+.012,0);o.normal=normalize(n+((normalize(cross(dz,dx))-float3(0,1,0))+float3(wake.y,0,wake.z))*lerp(1,.1,smoothstep(.2,2,y)));o.wave=y;o.uv=uv;o.whitewater=whitewater;o.bulk=cap>.5?.65:bulk;o.cap=cap;
+                o.world=world+offset+float3(0,wake.x+.012,0);o.normal=normalize(n+((normalize(cross(dz,dx))-float3(0,1,0))+float3(wake.y,0,wake.z))*lerp(1,.1,smoothstep(.2,2,y)));o.wave=y;o.uv=uv;o.whitewater=whitewater;o.bulk=cap>.5?.65:bulk;o.cap=cap;o.ripple=ripple;
                 o.positionCS=TransformWorldToHClip(o.world);o.fog=ComputeFogFactor(o.positionCS.z);return o;
             }
             float hash(float2 p){return frac(sin(dot(p,float2(127.1,311.7)))*43758.5453);}
@@ -138,6 +149,13 @@ Shader "Candy Tropical/Tsunami"
                 UNITY_SETUP_STEREO_EYE_INDEX_POST_VERTEX(i);
                 // The ordinary ocean already renders the flat apron; drawing it twice z-fights.
                 if(i.whitewater<.5)clip(i.wave-.035);
+                // The exported profile already contains the back slope and tapers to nothing at the ends,
+                // so the separate swell-back surface and side caps are not drawn with it.
+                if(_SurgeProfileReady>.5&&i.whitewater<.5&&(i.bulk>.5||i.cap>.5))clip(-1);
+                // No water inside an obstacle that stands in the wave (tower walls, big blocks).
+                float2 surgeLocal=CandySurgeCoordinates(i.world.xz);
+                float2 obstacle=CandySurgeObstacle(surgeLocal.x,surgeLocal.y);
+                if(obstacle.r>.55&&(i.world.y-_WaterHeight)<obstacle.g*_SurgeHeight-.2)clip(-1);
                 float distanceToEye=distance(i.world,_WorldSpaceCameraPos),r=IslandDistance(i.world.xz);
                 float depth=max(.01,i.world.y-TerrainHeight(i.world.xz)),deep=smoothstep(.15,3.2,depth);
                 float2 p=(i.world.xz+float2(i.wave*.18,i.wave*.64))*_RippleScale;float t=_Time.y*_Speed;
@@ -188,10 +206,21 @@ Shader "Candy Tropical/Tsunami"
                     clip(cover-.035);
                     return half4(MixFog(lerp(_Shallow.rgb,_Foam.rgb,.6+lace*.4),i.fog),cover*.95);
                 }
+                foam=max(foam,saturate(abs(i.ripple)*3.5)*.9);   // splash-back and churn around obstacles
                 foam*=lerp(1,.42,i.bulk);
                 color=lerp(color,_Foam.rgb,foam);
+                if(_Lava>.01)
+                {
+                    // Lava skin: thin glowing cracks in the dark crust, flowing up the face and pulsing.
+                    float2 lp=float2(i.uv.x*_SurgeWidth*.11,(i.uv.y+.5)*_SurgeHeight*.2-t*.35);
+                    float veinNoise=noise(lp)*.7+noise(lp*2.3+3.1)*.3;
+                    float crack=1-smoothstep(.0,.055,abs(veinNoise-.5));
+                    float pulse=.65+.35*sin(t*2.2+veinNoise*9);
+                    color=lerp(color,_Foam.rgb*pulse,saturate(crack*_Lava*.9));
+                }
                 color=MixFog(color,i.fog);color=lerp(color,_Horizon.rgb,smoothstep(240,700,distanceToEye));
                 float alpha=lerp(.19,.99,deep);alpha=max(alpha,smoothstep(.15,2,i.wave)*.98);alpha=max(alpha,saturate(fresnel*.82+foam));
+                alpha=lerp(alpha,1,_Opaque);
                 float border=i.cap>.5?1:(1-smoothstep(.65,.66,abs(i.uv.x)))*(1-smoothstep(.88,1.25,abs(i.uv.y)));
                 clip(border-.002);
                 return half4(color,alpha*border*(1-smoothstep(.965,1,i.uv.y+.5)));

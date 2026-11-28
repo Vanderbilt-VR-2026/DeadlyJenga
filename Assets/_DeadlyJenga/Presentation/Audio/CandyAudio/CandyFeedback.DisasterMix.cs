@@ -18,6 +18,8 @@ namespace DeadlyJenga.CandyAudio
         readonly Dictionary<string,Transform> meteorAnchors=new Dictionary<string,Transform>();
         readonly HashSet<string> audibleMeteors=new HashSet<string>();
         readonly Dictionary<string,int> lastMeteorContact=new Dictionary<string,int>();
+        readonly Dictionary<string,float> meteorWhistles=new Dictionary<string,float>();
+        readonly List<string> oldWhistles=new List<string>();
 
         bool BeginDisasterScan(CandyAudioEngine engine,ISessionInfo session)
         {
@@ -149,6 +151,7 @@ namespace DeadlyJenga.CandyAudio
         {
             if(frame.points==null)return;
             bool planet=frame.kind=="PlanetKillerMeteor";
+            if(!planet)MeteorWhistles(engine,key,frame);
             float reach=planet?240:70;
             int first=-1,second=-1;
             float near=reach*reach,next=near;
@@ -176,6 +179,33 @@ namespace DeadlyJenga.CandyAudio
             anchor.position=point.position+point.velocity*Mathf.Clamp(Time.time-frame.sampledAt,0,.18f);
             float gain=1-Mathf.Sqrt(distance)/reach;
             engine.Loop(planet?CandySound.PlanetApproach:CandySound.MeteorFlyby,anchor,.1f+.85f*gain,false,Mathf.Lerp(.78f,1.13f,gain));
+        }
+
+        // Incoming scream: starts when a meteor will pass close to the listener in about two seconds,
+        // at the point where it passes, so the doppler drop in the clip lines up with the real pass.
+        void MeteorWhistles(CandyAudioEngine engine,string key,DisasterFrame frame)
+        {
+            const float lead=2.1f,earliest=1.1f;
+            Vector3 listener=engine.Listener.position;
+            foreach(var point in frame.points)
+            {
+                float speed=point.velocity.sqrMagnitude;
+                if(speed<25)continue;
+                string id=key+"/"+point.id;
+                if(meteorWhistles.ContainsKey(id))continue;
+                Vector3 offset=point.position-listener;
+                float time=-Vector3.Dot(offset,point.velocity)/speed;
+                if(time<earliest||time>lead)continue;
+                Vector3 pass=offset+point.velocity*time;
+                float reach=Mathf.Max(16,point.size*5);
+                if(pass.sqrMagnitude>reach*reach)continue;
+                meteorWhistles[id]=Time.time;
+                float closeness=1-pass.magnitude/reach;
+                engine.Play(CandySound.MeteorWhistle,listener+pass,.55f+.45f*closeness,point.id);
+            }
+            oldWhistles.Clear();
+            foreach(var pair in meteorWhistles)if(Time.time-pair.Value>10)oldWhistles.Add(pair.Key);
+            foreach(string id in oldWhistles)meteorWhistles.Remove(id);
         }
 
         void PlayMeteorContacts(CandyAudioEngine engine,DisasterFrame frame)

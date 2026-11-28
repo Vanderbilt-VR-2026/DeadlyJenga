@@ -5,7 +5,7 @@ using UnityEngine;
 
 namespace DeadlyJenga.CandyArt
 {
-    public sealed class CandyWaveFeedback : MonoBehaviour
+    public sealed partial class CandyWaveFeedback : MonoBehaviour
     {
         readonly HashSet<IWaveState> impact=new HashSet<IWaveState>();float nextScan,nextSpray;bool hadWave;
         CandyWaveContactVisual contacts;
@@ -19,7 +19,7 @@ namespace DeadlyJenga.CandyArt
             {
                 if(wave==null)continue;
                 var f=wave.Wave;if(!f.active)continue;active=true;
-                if(f.warningRemaining>0)continue;
+                if(f.warningRemaining>0){Drawback(wave,audio,world);continue;}
                 if(f.height<=0||f.width<=0||f.depth<=0)continue;
                 audibleWaves.Add(wave);
                 if(audio.Listener)
@@ -39,6 +39,7 @@ namespace DeadlyJenga.CandyArt
                     float proximity=1-Mathf.Clamp01(distance/reach);
                     if(proximity>0)audio.Loop(CandySound.WaveRoar,anchor,.12f+.88f*proximity,false,Mathf.Lerp(.78f,1.08f,Mathf.Clamp01(f.speed/35)));
                 }
+                Triggers(wave,f,audio,world);
                 if(!contacts)contacts=GetComponent<CandyWaveContactVisual>();
                 if(contacts&&contacts.TryGetImpact(out var point))
                 {
@@ -50,14 +51,14 @@ namespace DeadlyJenga.CandyArt
             expiredWaves.Clear();
             foreach(var pair in roarAnchors)if(!audibleWaves.Contains(pair.Key))expiredWaves.Add(pair.Key);
             foreach(var wave in expiredWaves){if(roarAnchors[wave])Destroy(roarAnchors[wave].gameObject);roarAnchors.Remove(wave);}
-            if(hadWave&&!active){Puddle();impact.Clear();}hadWave=active;
+            if(hadWave&&!active){Puddle();impact.Clear();ClearTriggers();}hadWave=active;
         }
         void ClearAnchors()
         {
             foreach(var anchor in roarAnchors.Values)if(anchor)Destroy(anchor.gameObject);
             roarAnchors.Clear();audibleWaves.Clear();expiredWaves.Clear();
         }
-        void OnDisable(){ClearAnchors();impact.Clear();hadWave=false;}
+        void OnDisable(){CandyTsunamiVisuals.SplashContact-=OnSplash;ClearAnchors();ClearTriggers();impact.Clear();hadWave=false;}
         void Puddle()
         {
             var world=Services.World;

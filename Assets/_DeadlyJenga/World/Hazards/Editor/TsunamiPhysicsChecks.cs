@@ -40,7 +40,9 @@ namespace DeadlyJenga.World.Hazards.Editor
                 tower.transform.SetParent(compound.transform, false);
                 tower.transform.localPosition = Vector3.up * 3;
                 tower.AddComponent<BoxCollider>().size = new Vector3(1, 5, 1);
-                var lowerOnly = CreateBlock(root.transform, "Identical lower piece", new Vector3(-4, 1, 0), Vector3.one);
+                // Same spot as the compound block: the authored wave is bowed across its width, so mirrored
+                // positions get slightly different water heights. The probes have no bodies, so they never collide.
+                var lowerOnly = CreateBlock(root.transform, "Identical lower piece", new Vector3(4, 1, 0), Vector3.one);
                 var catalog = Resources.Load<HazardCatalog>("DisasterCatalog");
                 var prefab = Array.Find(catalog.prefabs, item => item.GetComponent<TsunamiHazard>());
                 instance = UnityEngine.Object.Instantiate(prefab);
@@ -92,6 +94,8 @@ namespace DeadlyJenga.World.Hazards.Editor
                 for (int tick = 0; tick < 1000 && hazard.Active; tick++) step.Invoke(hazard, null);
                 Require(longBlock.calls == calls && hazard.LastTargetCount == 0, "Zero-force waves must skip target processing.");
                 Debug.Log("Tsunami force checks passed: offshore start, long block edge, compound submersion, duplicate colliders, resistance, speed cap, target filter and stop/retrigger.");
+                // Batch runs (-executeMethod) must quit on success; a thrown check already exits with code 1.
+                if (Application.isBatchMode) EditorApplication.delayCall += () => EditorApplication.Exit(0);
             }
             finally
             {

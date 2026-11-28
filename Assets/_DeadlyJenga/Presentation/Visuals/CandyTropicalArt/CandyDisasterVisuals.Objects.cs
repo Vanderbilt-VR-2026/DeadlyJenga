@@ -104,11 +104,14 @@ namespace DeadlyJenga.CandyArt
                 float spin=Time.time*18+point.id*73;
                 stones.Add(Matrix4x4.TRS(position,Quaternion.Euler(spin*.7f,spin,spin*.3f),Vector3.one*point.size));
                 var back=-point.velocity.normalized;
+                bool plume=HasMeteorTail();
+                if(plume)AddMeteorTail(position,point.velocity,point.size,f.kind=="PlanetKillerMeteor");
                 for(int j=0;j<6;j++)
                 {
                     float fraction=j/5f;Vector3 p=position+back*point.size*(.3f+fraction*2.5f);
-                    Puff(flames,p,point.size*(1-fraction*.78f),point.size*(1.3f-fraction*.8f),point.id*43+j*53);
-                    if(j>2)Puff(smokePuffs,p+back*point.size*.6f,point.size*(.8f+fraction),point.size*(.8f+fraction),j*45);
+                    if(!plume)Puff(flames,p,point.size*(1-fraction*.78f),point.size*(1.3f-fraction*.8f),point.id*43+j*53);
+                    // Smoke trails behind the plume (further back when the long v2 plume is drawn).
+                    if(j>2)Puff(smokePuffs,p+back*point.size*(plume?5.5f:.6f),point.size*(.8f+fraction)*(plume?1.6f:1),point.size*(.8f+fraction)*(plume?1.6f:1),j*45);
                 }
             }
         }
@@ -139,7 +142,8 @@ namespace DeadlyJenga.CandyArt
         }
         void Burst(Vector3 position,DisasterPoint point,bool planet)
         {
-            int count=planet?72:12;
+            int count=planet?120:20;
+            AddImpact(position,point.size,planet);
             for(int i=0;i<count;i++)
             {
                 float a=Hash(point.id*97+i)*Mathf.PI*2,y=.22f+Hash(i+point.id*21)*.85f;
@@ -171,12 +175,14 @@ namespace DeadlyJenga.CandyArt
                 if(t>=1){fragments.RemoveAt(i);continue;}
                 Vector3 p=fragment.position+fragment.velocity*age+Vector3.down*(4.9f*age*age);
                 float fade=1-Mathf.SmoothStep(0,1,Mathf.InverseLerp(.65f,1,t));
-                (fragment.candy?candyChips:chips).Add(Matrix4x4.TRS(p,Quaternion.Euler(fragment.seed+age*140,age*100,fragment.seed),Vector3.one*fragment.size*fade));
+                var fragmentMatrix=Matrix4x4.TRS(p,Quaternion.Euler(fragment.seed+age*140,age*100,fragment.seed),Vector3.one*fragment.size*fade);
+                if(fragment.candy)candyChips.Add(fragmentMatrix);else(ShardList((int)fragment.seed)??chips).Add(fragmentMatrix);
                 if(!fragment.candy && i%3==0)Puff(dustPuffs,fragment.position+fragment.velocity*(age*.25f)+Vector3.up*age,fragment.size*(3+age*2)*fade,fragment.size*(3+age*2)*fade,fragment.seed);
             }
-            DrawObjects(stones,rock,stone);DrawObjects(chips,rock,chipMaterial);
+            MeteorMaterials(out var rockLook,out var chipLook,out var trailLook,out var trailSmokeLook);
+            DrawObjects(stones,rock,rockLook);DrawObjects(chips,rock,chipLook);RenderImpacts(chipLook);RenderMeteorTails();
             DrawObjects(candyChips,shard,shardMaterial);
-            DrawObjects(acidStreaks,quad,acid);DrawObjects(smokePuffs,quad,smoke);DrawObjects(dustPuffs,quad,dust);DrawObjects(flames,quad,flame);
+            DrawObjects(acidStreaks,quad,rainMaterial?rainMaterial:acid);RenderRainLandings();DrawObjects(smokePuffs,quad,trailSmokeLook);DrawObjects(dustPuffs,quad,dust);DrawObjects(flames,quad,trailLook);
             DrawObjects(windPuffs,quad,stormMist);DrawObjects(stormBolts,quad,stormFlash);
             DrawObjects(seaFoam,quad,tornadoFoam);
             DrawObjects(seaSpray,quad,tornadoSpray);
@@ -351,10 +357,12 @@ namespace DeadlyJenga.CandyArt
             float cycle=Mathf.Repeat(Time.time,7);
             float flash=Mathf.Pow(Mathf.Clamp01(1-Mathf.Abs(cycle-1.8f)/.1f),2)+.55f*Mathf.Pow(Mathf.Clamp01(1-Mathf.Abs(cycle-2f)/.075f),2);
             if(previewStormFlash>=0)flash=previewStormFlash;
+            stormFlashLevel=flash;
             float visibility = 1f - tornadoDissolve;
             flash *= visibility;
             storm.SetVector("_StormInfo",new Vector4(size,height,speed,flash));
-            stormMist.SetColor("_BaseColor",Color.Lerp(new Color(.18f,.22f,.31f,.64f*visibility),new Color(.40f,.49f,.86f,.70f*visibility),flash));
+            // Matches the v2 wall cloud (pale storm grey) so the puffs blend in instead of reading as dark blots.
+            stormMist.SetColor("_BaseColor",Color.Lerp(new Color(.46f,.49f,.55f,.42f*visibility),new Color(.55f,.62f,.9f,.6f*visibility),flash));
             float ribbonOpacity = !supportsTornadoVolume ? .88f : compactStorm ? .12f : .19f;
             stormRibbon.SetColor("_BaseColor", Color.Lerp(new Color(.27f, .34f, .46f, ribbonOpacity * visibility),
                 new Color(.59f, .71f, 1.1f, .28f * visibility), flash));
@@ -434,9 +442,12 @@ namespace DeadlyJenga.CandyArt
             {
                 float t=y/(float)rows,u=x/(float)columns,bodyT=Mathf.Min(1,t/.82f),capT=Mathf.Clamp01((t-.82f)/.18f);
                 float a=bodyT*19+capT*6+band*Mathf.PI*2/bands+Time.time*speed*1.8f+(u-.5f)*(supportsTornadoVolume?.85f:3.8f);
-                float radius=Mathf.Lerp(size*.14f,size*.8f,Mathf.Pow(bodyT,1.2f))*(1+.06f*Mathf.Sin(bodyT*31+band));
-                if(capT>0)radius=Mathf.Lerp(size*.8f,size*3.9f,capT);
-                var lean=new Vector3(Mathf.Sin(bodyT*3+Time.time*.7f),0,Mathf.Cos(bodyT*4-Time.time*.6f))*size*.13f*bodyT;
+                // Same rope-to-flare profile and S-bend as CandyStormFunnel.shader.
+                float neck=.55f+.45f*Mathf.Sin(Mathf.Min(bodyT/.2f,1)*Mathf.PI*.5f);
+                float radius=size*(.21f*neck+1.15f*Mathf.Pow(bodyT,2.8f))*(1+.06f*Mathf.Sin(bodyT*31+band));
+                if(capT>0)radius=Mathf.Lerp(size*1.36f,size*3.9f,capT);
+                var lean=new Vector3(Mathf.Sin(bodyT*2.6f)*.28f,0,bodyT*bodyT*.44f)*size
+                    +new Vector3(Mathf.Sin(bodyT*3+Time.time*.7f),0,Mathf.Cos(bodyT*4-Time.time*.6f))*size*.06f*bodyT;
                 streamVertices[(band*(rows+1)+y)*(columns+1)+x]=lean+new Vector3(Mathf.Cos(a)*radius,bodyT*height+Mathf.Sin(capT*Mathf.PI)*size*.65f,Mathf.Sin(a)*radius);
             }
             stormRibbons.vertices=streamVertices;stormRibbons.RecalculateBounds();
@@ -454,17 +465,20 @@ namespace DeadlyJenga.CandyArt
         void Rain(DisasterFrame f)
         {
             if(f.values==null||f.values.Length<2)return;
+            var skin=CurrentRainSkin();
+            rainMaterial=RainDropMaterial(skin);
             int limit=Application.isMobilePlatform?MobileAcidStreakLimit:AcidStreakLimit;
             int count=Mathf.Min(limit-acidStreaks.Count,Mathf.RoundToInt(f.values[1]*3.5f));
             for(int i=0;i<count;i++)
             {
                 float h=Mathf.Repeat(Hash(i+300)-Time.time*.45f,1);
                 var position=f.center+new Vector3((Hash(i)-.5f)*f.size.x,(h-.4f)*(f.size.y+30),(Hash(i+800)-.5f)*f.size.z);
-                float size=Hash(i+33);
-                Puff(acidStreaks,position,.14f+size*.075f,1.55f+size*1.15f,-7);
+                RainDropShape(skin,Hash(i+33),out float width,out float length);
+                Puff(acidStreaks,position,width,length,-7);
             }
+            RainLandings(f,skin);
         }
-        void ClearObjects(){meteorLooks.Clear();fragments.Clear();lastTornado=null;ReleaseTornadoDepth();}
-        void DestroyObjects(){foreach(var m in new[]{stone,chipMaterial,smoke,flame,dust,storm,stormMist,stormRibbon,stormFlash,acid,gravityBubble,tornadoSpray,tornadoFoam,tornadoRemnants})if(m)Destroy(m);if(rock)Destroy(rock);if(quad)Destroy(quad);if(stormNoise)Destroy(stormNoise);if(stormRibbons)Destroy(stormRibbons);}
+        void ClearObjects(){meteorLooks.Clear();fragments.Clear();landings.Clear();impacts.Clear();lastTornado=null;ReleaseTornadoDepth();}
+        void DestroyObjects(){DestroyRainSkins();DestroyMeteorSkins();DestroyImpacts();DestroyMeteorTails();foreach(var m in new[]{stone,chipMaterial,smoke,flame,dust,storm,stormMist,stormRibbon,stormFlash,acid,gravityBubble,tornadoSpray,tornadoFoam,tornadoRemnants})if(m)Destroy(m);if(rock)Destroy(rock);if(quad)Destroy(quad);if(stormNoise)Destroy(stormNoise);if(stormRibbons)Destroy(stormRibbons);}
     }
 }

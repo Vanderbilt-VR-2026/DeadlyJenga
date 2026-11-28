@@ -126,9 +126,14 @@ namespace DeadlyJenga.CandyAudio.Editor
                 SessionState.EraseString(Pending);
                 var scene = SessionState.GetString(Pending + ".scene", "");
                 if (!string.IsNullOrEmpty(scene) && File.Exists(scene)) EditorSceneManager.OpenScene(scene);
-                CandySoundStudioWindow.Open();
-                bool failed = File.ReadAllText(Report).Contains("\nFAIL ");
+                if (!Application.isBatchMode) CandySoundStudioWindow.Open();
+                var text = File.ReadAllText(Report);
+                bool failed = text.Contains("\nFAIL ");
                 File.AppendAllText(Report, (failed ? "FAILED" : "COMPLETE") + " · no project bank or gameplay scene changed\n");
+                // Batch jobs read the Unity log and need Unity to quit (it used to hang here after passing).
+                int passes = text.Split('\n').Count(l => l.StartsWith("PASS ")), fails = text.Split('\n').Count(l => l.StartsWith("FAIL "));
+                Debug.Log("Sound Studio checks " + (failed ? "FAILED" : "passed") + ": " + passes + " passed, " + fails + " failed (" + Report + ")");
+                if (Application.isBatchMode) EditorApplication.delayCall += () => EditorApplication.Exit(failed ? 2 : 0);
             }
         }
         static void Tick()

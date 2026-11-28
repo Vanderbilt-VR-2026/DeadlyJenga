@@ -1,6 +1,6 @@
 Shader "Candy Tropical/Engulfing Block Fire"
 {
- Properties {_BaseColor("Tint",Color)=(1,1,1,1) _Tongue("Flame tongue",Float)=0 _Cull("Cull",Float)=2}
+ Properties {_BaseColor("Tint",Color)=(1,1,1,1) _Tongue("Flame tongue",Float)=0 _Cull("Cull",Float)=2 _FlameAtlas("Blender fire flipbook (4x4)",2D)="black"{} _UseAtlas("Use flipbook",Float)=0}
  SubShader
  {
   Tags {"RenderPipeline"="UniversalPipeline" "Queue"="Transparent+5" "RenderType"="Transparent"}
@@ -13,7 +13,10 @@ Shader "Candy Tropical/Engulfing Block Fire"
    #pragma multi_compile_instancing
    #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Core.hlsl"
    float4 _BaseColor;
-   float _Tongue;
+   float _Tongue,_UseAtlas;
+   TEXTURE2D(_FlameAtlas);SAMPLER(sampler_FlameAtlas);
+   // One cell of the 4x4 Blender flipbook (row 0 at the top).
+   half4 Cell(float2 uv,float frame){float k=fmod(frame,16);float2 cell=float2(fmod(k,4),3-floor(k/4));return SAMPLE_TEXTURE2D(_FlameAtlas,sampler_FlameAtlas,(cell+saturate(uv)*float2(.996,.996)+.002)/4);}
    struct A {float4 positionOS:POSITION;float2 uv:TEXCOORD0;UNITY_VERTEX_INPUT_INSTANCE_ID};
    struct V {float4 positionCS:SV_POSITION;float2 uv:TEXCOORD0;float3 world:TEXCOORD1;float3 local:TEXCOORD2;UNITY_VERTEX_OUTPUT_STEREO};
    float Hash(float2 p)
@@ -60,6 +63,18 @@ Shader "Candy Tropical/Engulfing Block Fire"
     }
     float height=saturate(i.uv.y);
     float x=i.uv.x*2-1;
+    if(_UseAtlas>.5)
+    {
+     // Blender fire v2 flipbook: 16 frames at 12 fps, each tongue offset in time by its position, frames crossfaded.
+     float seed=frac(dot(TransformObjectToWorld(float3(0,0,0)).xz,float2(.137,.291)));
+     float frame=t*12+seed*16,blend=frac(frame);
+     float2 uvf=float2(i.uv.x,height);
+     half4 a=Cell(uvf,floor(frame)),b=Cell(uvf,floor(frame)+1);
+     half4 fire=lerp(a,b,blend);
+     float shimmer=.85+.3*n;
+     float alphaA=saturate(fire.a*shimmer)*_BaseColor.a*(1-smoothstep(.9,1,height));
+     return half4(fire.rgb*1.6*alphaA,alphaA);
+    }
     float tail=1-smoothstep(.63,.98,height+n*.08);
     float bend=(Noise(float2(flow.x*2,height*4-t*2))-.5)*.52*height;
     float edge=1-smoothstep(.29,.98,abs(x-bend));

@@ -9,6 +9,24 @@ namespace DeadlyJenga.CandyAudio
     {
         public static CandyAudioCue Find(CandySound sound)
         {
+            if (CandyTsunamiSounds.Contains(sound))
+            {
+                var tsunami = new Dictionary<CandySound, CandyAudioCue>();
+                CandyTsunamiSounds.AddDefaults(tsunami);
+                if (tsunami.TryGetValue(sound, out var recordedWave)) return recordedWave;
+            }
+            if (CandyDisasterSuite.Contains(sound))
+            {
+                var suite = new Dictionary<CandySound, CandyAudioCue>();
+                CandyDisasterSuite.AddDefaults(suite);
+                if (suite.TryGetValue(sound, out var recordedDisaster)) return recordedDisaster;
+            }
+            if (CandyMeteorSounds.Contains(sound))
+            {
+                var meteor = new Dictionary<CandySound, CandyAudioCue>();
+                CandyMeteorSounds.AddDefaults(meteor);
+                if (meteor.TryGetValue(sound, out var recorded)) return recorded;
+            }
             if (Array.IndexOf(CandyBreathing.Sounds, sound) >= 0) return CandyBreathing.DefaultCue(sound);
             if (Array.IndexOf(CandyDisasterSounds.Sounds, sound) >= 0) return CandyDisasterSounds.DefaultCue(sound);
             if (Array.IndexOf(CandyWeaponSounds.Sounds, sound) >= 0) return CandyWeaponSounds.DefaultCue(sound);
@@ -24,6 +42,9 @@ namespace DeadlyJenga.CandyAudio
         public static void AddMissing(Dictionary<CandySound, CandyAudioCue> cues)
         {
             Add(CandyBreathing.Sounds, CandyBreathing.DefaultCue);
+            CandyMeteorSounds.AddDefaults(cues);
+            CandyTsunamiSounds.AddDefaults(cues);
+            CandyDisasterSuite.AddDefaults(cues);
             Add(CandyDisasterSounds.Sounds, CandyDisasterSounds.DefaultCue);
             Add(CandyWeaponSounds.Sounds, CandyWeaponSounds.DefaultCue);
             Add(CandyJaguarSounds.Sounds, CandyJaguarSounds.DefaultCue);

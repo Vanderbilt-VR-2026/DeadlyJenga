@@ -459,7 +459,7 @@ namespace DeadlyJenga.CastlePrototype
             DesktopWheelButton(new Rect(490,238,330,42),"STOP ALL DISASTERS",()=>Demo.Run(DemoCommand.StopDisasters),CanCommand);
             DesktopWheelButton(new Rect(490,297,154,36),"PREVIOUS",()=>{desktopDisasterOffset-=size;desktopDisaster=desktopDisasterOffset;},desktopDisasterOffset>0);
             DesktopWheelButton(new Rect(666,297,154,36),"NEXT",()=>{desktopDisasterOffset+=size;desktopDisaster=desktopDisasterOffset;},desktopDisasterOffset+size<Demo.DisasterCount);
-            GUI.Label(new Rect(490,342,330,64),disasterStatus??"",small);
+            GUI.Label(new Rect(490,342,330,64),!string.IsNullOrEmpty(disasterStatus)?disasterStatus:Demo.DisasterDescription(index),small);
             var definitions=Demo.DisasterParameters(index);var values=Demo.DisasterValues(index);
             float y=422;
             Panel(new Rect(8,y,824,definitions.Count*64+23),CandyHudVisuals.Card);
