@@ -324,11 +324,17 @@ def root(n):
     while up.get(n, n) != n:
         n = up[n]
     return n
+RAIL_CODE = ('Railway span', 'Timber trestle bent', 'Depot platform timber bent', 'Depot boarding platform')
+def keep_name(n):
+    # which name a merged group keeps: the foundation, then other fixed members, then the larger member;
+    # never a code-built rail piece (Unity builds those itself, so the export drops their parts)
+    return (not n.startswith(RAIL_CODE), n == 'Pyramid podium and hall floor', is_fixed(n, members[n]), len(members[n]))
+RAIL_PART_IDS = {id(p) for n in members if n.startswith(RAIL_CODE) for p in members[n]}
 for a, b in STUCK:
     ra, rb_ = root(a), root(b)
     if ra == rb_:
         continue
-    if is_fixed(rb_, members[rb_]) or (not is_fixed(ra, members[ra]) and len(members[rb_]) > len(members[ra])):
+    if keep_name(rb_) > keep_name(ra):
         ra, rb_ = rb_, ra
     up[rb_] = ra
 merged = 0
@@ -348,7 +354,7 @@ for n in list(members):
 if os.environ.get('SJ_EXPORT'):
     sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
     import sj_unity_export
-    sj_unity_export.export(os.environ['SJ_EXPORT'], members, sources, FR, dg, islands)
+    sj_unity_export.export(os.environ['SJ_EXPORT'], members, sources, FR, dg, islands, RAIL_PART_IDS)
     sys.exit(0)
 
 # ---------------------------------------------------------------- bodies

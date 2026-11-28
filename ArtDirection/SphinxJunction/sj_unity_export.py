@@ -15,7 +15,7 @@ def srgb(x):
     return round(max(0, min(1, (1.055 * x ** (1 / 2.4) - .055) if x > .0031308 else x * 12.92)) * 255)
 
 
-def export(path, members, sources, frame_matrix, dg, islands):
+def export(path, members, sources, frame_matrix, dg, islands, rail_parts=frozenset()):
     inv = frame_matrix.inverted()
 
     def enc(v):
@@ -24,7 +24,13 @@ def export(path, members, sources, frame_matrix, dg, islands):
 
     print('EXPORT frame check: pyramid centre (36, 16.5, 2.7) ->', tuple(round(x, 3) for x in enc(Vector((36.0, 16.5, 2.7)))),
           'hall floor 2.78 ->', round(enc(Vector((36.0, 16.5, 2.78)))[1], 3), flush=True)
-    owners = {n: {'col': parts, 'vis': []} for n, parts in members.items() if not n.startswith(CODE_BUILT)}
+    # rail pieces merged into a sculpted member in the Blender test are dropped: Unity builds the railway in code
+    owners = {n: {'col': [p for p in parts if id(p) not in rail_parts], 'vis': []}
+              for n, parts in members.items() if not n.startswith(CODE_BUILT)}
+    # the Unity map switches to BuildBakedTown on this name, and its checks look these up
+    for need in ('Pyramid podium and hall floor', 'Plaza paving 0,0', 'Saloon timber storey 0', 'Saloon timber storey 1',
+                 'General store frame', 'Undertaker frame', 'Sphinx right forepaw'):
+        assert need in owners, 'export is missing member ' + need
     # member boxes for placing decorations
     boxes = {}
     for n, o in owners.items():
