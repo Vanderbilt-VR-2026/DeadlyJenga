@@ -47,7 +47,9 @@ namespace DeadlyJenga.CastlePrototype.Editor
             EditorSceneManager.OpenScene(ProjectPath.Find("Game.unity"));EditorApplication.EnterPlaymode();
         }
         public static void RunBatch()=>Run();
-        static void Log(string message,string trace,LogType type){if(type==LogType.Error||type==LogType.Exception||type==LogType.Assert){errors++;File.AppendAllText(ProjectPath.Report("AllDisasters.txt"),"ERROR "+message+"\n"+trace+"\n");}}
+        static void Log(string message,string trace,LogType type){if(type==LogType.Error||type==LogType.Exception||type==LogType.Assert){if(EditorNoise(trace)){File.AppendAllText(ProjectPath.Report("AllDisasters.txt"),"IGNORED editor package error: "+message+"\n");return;}errors++;File.AppendAllText(ProjectPath.Report("AllDisasters.txt"),"ERROR "+message+"\n"+trace+"\n");}}
+        // Editor-only package noise (the Unity AI Assistant's connection tracing), never game code.
+        static bool EditorNoise(string trace)=>trace!=null&&(trace.Contains("Unity.AI.Tracing")||trace.Contains("com.unity.ai.assistant"));
         static void Require(bool ok,string message){File.AppendAllText(ProjectPath.Report("AllDisasters.txt"),(ok?"PASS ":"FAIL ")+message+"\n");if(!ok)throw new Exception(message);}
         static IEnumerator Guard(IEnumerator test)
         {
