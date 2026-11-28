@@ -104,6 +104,7 @@ namespace DeadlyJenga.DevTools.Editor
             float carried=0,drop=0;
             yield return DeadlyJenga.HandValidation.FlyingHandFeelValidation.PullMapMember(cornice,(travel,fallDepth)=>{carried=travel;drop=fallDepth;});
             File.AppendAllText(Report,$"Production hand cornice pull {carried:F2} m outward while closed, drop {drop:F2} m after opening\n");
+            LogNeighbours(map,placements,"cornice",cornice);
             var pier=map.Bodies[placements.FindIndex(p=>Mathf.Abs(p.Position.x+26)<.01f && p.Position.z==-19 && p.Position.y<1)];
             var deck=map.Bodies[placements.FindIndex(p=>Mathf.Abs(p.Position.x+26)<.01f && p.Position.z==-19 && p.Position.y>1)];
             float deckY=deck.position.y;
@@ -143,8 +144,11 @@ namespace DeadlyJenga.DevTools.Editor
             motor.InputDriver=null;motor.externallyDriven=false;
             var upper=map.Bodies[placements.FindIndex(p=>Mathf.Abs(p.Position.x-8.55f)<.01f && p.Size.x>8 && p.Size.y==1)];
             var oldUpper=upper.position;upper.GetComponent<IPushable>().Push(Vector3.forward*16,null);
+            yield return new WaitForFixedUpdate();
+            File.AppendAllText(Report,$"Upper bridge speed after push {upper.linearVelocity} mass {upper.mass:F0}\n");
             yield return new WaitForSeconds(.8f);
             float upperTravel=Vector3.Distance(upper.position,oldUpper);
+            LogNeighbours(map,placements,"upper bridge",upper);
             yield return WalkKeep(motor,new Vector3(16,3.1f,-8.8f),new[]{new Vector3(24.3f,6,-8.8f),new Vector3(24.3f,6,-5)},result=>routes &= result,"east ascent after upper crossing loss");
             bool eliminated=false;
             void Observe(GameObject who,GameObject source){if(who==motor.gameObject)eliminated=true;}
@@ -203,6 +207,25 @@ namespace DeadlyJenga.DevTools.Editor
                     float d=Vector3.Distance(map.Bodies[i].position,map.transform.TransformPoint(placements[i].Position));
                     if(d<.1f || !moved.Add(i) || moved.Count>30)continue;
                     File.AppendAllText(Report,$"MOVED t={at:F2} #{i} course {placements[i].Course} home {placements[i].Position} by {d:F2} velocity {map.Bodies[i].linearVelocity}\n");
+                }
+            }
+        }
+
+        // What a member touches, is jointed to or ignores, for checks that expect it to move.
+        static void LogNeighbours(CastleGenerator map,System.Collections.Generic.List<CastlePlacement> placements,string label,Rigidbody body)
+        {
+            foreach(var joint in body.GetComponents<Joint>())
+                File.AppendAllText(Report,$"NEAR {label} joint to {(joint.connectedBody?map.Bodies.IndexOf(joint.connectedBody).ToString():"world")}\n");
+            foreach(var own in body.GetComponentsInChildren<Collider>().Where(c=>c.enabled && !c.isTrigger))
+            {
+                var bounds=own.bounds;
+                foreach(var other in Physics.OverlapBox(bounds.center,bounds.extents+Vector3.one*.05f))
+                {
+                    if(!other.attachedRigidbody || other.attachedRigidbody==body)continue;
+                    int index=map.Bodies.IndexOf(other.attachedRigidbody);
+                    bool touching=Physics.ComputePenetration(own,own.transform.position,own.transform.rotation,
+                        other,other.transform.position,other.transform.rotation,out _,out float depth);
+                    File.AppendAllText(Report,$"NEAR {label} {own.name} touches #{index} course {(index>=0?placements[index].Course:-1)} {other.name} ignored {Physics.GetIgnoreCollision(own,other)} depth {(touching?depth:0):F3}\n");
                 }
             }
         }
