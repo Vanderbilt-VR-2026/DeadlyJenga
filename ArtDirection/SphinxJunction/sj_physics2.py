@@ -160,8 +160,8 @@ for orig, name, M, own in todo:
             members.setdefault(f'{name} block {k}', []).append((V, P))
             sources.setdefault(f'{name} block {k}', []).append((orig, M, k))
     else:
-        if own.startswith(('Plaza paving', 'Plaza approach', 'Causeway span')):
-            # walkable slabs bear on flat boxes (Unity's code-built paving used box colliders), not their bevelled art
+        if own.startswith('Plaza paving'):
+            # flat plaza tiles bear on boxes (Unity's code-built paving used box colliders), not their bevelled art
             boxed = []
             for V, P in parts:
                 lo = [min(v[i] for v in V) for i in range(3)]; hi = [max(v[i] for v in V) for i in range(3)]

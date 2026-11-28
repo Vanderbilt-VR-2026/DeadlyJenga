@@ -151,11 +151,23 @@ def export(path, members, sources, frame_matrix, dg, islands, rail_parts=frozens
                 tris = []
                 for p in Pp:
                     for j in range(1, len(p) - 1):
-                        if n == 'Pyramid podium and hall floor':
-                            # concave colliders are one-sided: keep Blender's outward winding after the axis swap
-                            tris.append((p[0], p[j], p[j + 1], (0, 0, 0)))
-                        else:
-                            tris.append((p[0], p[j + 1], p[j], (0, 0, 0)))
+                        tris.append((p[0], p[j + 1], p[j], (0, 0, 0)))
+                if n == 'Pyramid podium and hall floor':
+                    # concave colliders are one-sided and the art's winding is not consistent: add a reversed copy of
+                    # every face, 2 mm behind it so mesh cooking does not merge it away as a duplicate
+                    import numpy as _np
+                    extra, base = [], len(verts)
+                    for a, b, c, col in list(tris):
+                        A, B, C = (_np.array(verts[i]) for i in (a, b, c))
+                        nrm = _np.cross(B - A, C - A); L = _np.linalg.norm(nrm)
+                        if L < 1e-9:
+                            continue
+                        off = -nrm / L * 0.002
+                        for q in (A, B, C):
+                            verts.append(tuple(q + off))
+                        k = len(verts) - 3
+                        extra.append((k, k + 2, k + 1, col))
+                    tris += extra
                 # the hall foundation keeps exact concave colliders (its openings must stay open); piles stay
                 # convex, which resting pieces cannot sink through, and the map makes them kinematic
                 count += sum(write_part(f, 3 if n == 'Pyramid podium and hall floor' else 2, verts, tris))
