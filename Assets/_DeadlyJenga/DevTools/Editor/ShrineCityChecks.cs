@@ -181,12 +181,21 @@ namespace DeadlyJenga.DevTools.Editor
             GameEvents.Eliminated += OnDeath;
             try
             {
-                player.Place(map.transform.TransformPoint(new Vector3(0, -1.2f, -150)), Quaternion.identity);
+                var lake = map.transform.TransformPoint(new Vector3(0, -1.2f, -150));
+                player.Place(lake, Quaternion.identity);
                 for (float end = Time.time + 6; Time.time < end && !died;) yield return null;
                 Check(died, "Falling into the open lake eliminates the survivor");
-                for (float end = Time.time + 15; Time.time < end && !NetworkActors.Alive(session.Player);) yield return null;
-                yield return Wait(1);
+                // The respawn follows the death transition: wait until the survivor is moved away from the lake.
+                float waited = 0;
+                for (float end = Time.time + 20; Time.time < end; waited += Time.deltaTime)
+                {
+                    var p = session.Player;
+                    if (p && NetworkActors.Alive(p) && Vector3.Distance(p.transform.position, lake) > 5) break;
+                    yield return null;
+                }
+                yield return Wait(.5f);
                 var back = session.Player;
+                Line($"RESPAWN moved off the lake after {waited:F1} s");
                 Vector3 landed = back.transform.position;
                 died = false;
                 yield return Wait(3);                       // the respawn spot must keep the survivor alive (no sinking, no drowning)
