@@ -184,8 +184,8 @@ namespace DeadlyJenga.CastlePrototype
                 }
         }
 
-        // Light ornaments (3 kg or less) glued to a much heavier piece ride on that piece as part of
-        // its body. As separate bodies they shook their glue loose at rest.
+        // Light ornaments (3 kg or less) ride, as part of its body, on the heaviest piece they are glued to
+        // (following chains of ornaments down to their structure). As separate bodies they shook loose at rest.
         static int[] OrnamentHosts(LayoutSpec layout)
         {
             var bodies = layout.bodies; var host = new int[bodies.Length];
@@ -198,7 +198,7 @@ namespace DeadlyJenga.CastlePrototype
                 {
                     if (j.b < 0) continue;
                     int other = j.a == i ? j.b : j.b == i ? j.a : -1;
-                    if (other < 0 || bodies[other].mass < 10 * bodies[i].mass) continue;
+                    if (other < 0 || bodies[other].mass <= bodies[i].mass) continue;
                     if (best < 0 || bodies[other].mass > bodies[best].mass) best = other;
                 }
                 if (best >= 0) host[i] = best;
