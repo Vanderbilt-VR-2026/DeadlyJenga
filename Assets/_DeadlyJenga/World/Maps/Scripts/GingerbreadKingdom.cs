@@ -20,17 +20,17 @@ namespace DeadlyJenga.CastlePrototype
         public Transform Root=>transform;
         public int Revision {get;private set;}
         public Vector3 Center=>transform.position;
-        public float TopHeight=>transform.TransformPoint(V(0,ClockCrown,-8)).y;
-        public float Radius=>32*transform.lossyScale.x;
+        public float TopHeight=>builtBlender?transform.TransformPoint(blenderBounds.max).y:transform.TransformPoint(V(0,ClockCrown,-8)).y;
+        public float Radius=>(builtBlender?60:32)*transform.lossyScale.x;
         public float StepHeight=>.18f;
-        public Bounds PlayableBounds=>new Bounds(Center+Vector3.up*10.5f*transform.lossyScale.y,Vector3.Scale(V(55,31,64),transform.lossyScale));
+        public Bounds PlayableBounds=>builtBlender?new Bounds(transform.TransformPoint(blenderBounds.center),Vector3.Scale(blenderBounds.size+V(4,4,4),transform.lossyScale)):new Bounds(Center+Vector3.up*10.5f*transform.lossyScale.y,Vector3.Scale(V(55,31,64),transform.lossyScale));
         public int FootprintVersion=>1;
         public float FootprintHalfSize=>32;
         public void GetGroundFootprints(List<Footprint> into)=>into.Add(new Footprint{center=Vector2.zero,halfSize=new Vector2(27,32),rotation=Quaternion.identity});
         public float WaterHeight(Vector3 position)=>transform.position.y-5*transform.lossyScale.y;
         public bool IsSheltered(Vector3 position)=>Physics.Raycast(position+Vector3.up*.15f,Vector3.up,25,1<<Layers.Block);
-        public Vector3 SafeSpawnPoint()=>transform.TransformPoint(V(0,.12f,-23));
-        public string SaveLayout()=>"gingerbread-kingdom-v2";
+        public Vector3 SafeSpawnPoint()=>builtBlender?transform.TransformPoint(blenderSpawn+V(0,.12f,0)):transform.TransformPoint(V(0,.12f,-23));
+        public string SaveLayout()=>builtBlender||UseBlenderPhysicsTown?"gingerbread-kingdom-blender-physics-v1":"gingerbread-kingdom-v2";
         public bool LoadLayout(string layout,int expectedBlocks,Pose origin,Vector3 scale)
         {
             if(layout!=SaveLayout() || !float.IsFinite(origin.position.sqrMagnitude) || !float.IsFinite(scale.sqrMagnitude) ||
@@ -47,6 +47,7 @@ namespace DeadlyJenga.CastlePrototype
         }
         void FixedUpdate()
         {
+            FinishBlenderSettle();
             if(Time.time<nextFallCheck)return;
             nextFallCheck=Time.time+.1f;
             Vector3 center=transform.TransformPoint(V(0,-56,0));
@@ -87,7 +88,8 @@ namespace DeadlyJenga.CastlePrototype
         public void Rebuild()
         {
             if(town){town.gameObject.SetActive(false);Destroy(town.gameObject);}
-            pieces.Clear();FreeMeshes();town=Group("Sugar valley",transform,Vector3.zero);plot=town;
+            pieces.Clear();FreeMeshes();town=Group("Sugar valley",transform,Vector3.zero);plot=town;builtBlender=false;
+            if(UseBlenderPhysicsTown){BuildBlenderTown();Physics.SyncTransforms();Revision++;return;}
             Landscape();
             House(-1,-16,8,3.8f,6.4f,2,4);
             House(-9,-11,-18,4,5.4f,3,7);
