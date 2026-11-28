@@ -93,6 +93,32 @@ namespace DeadlyJenga.CastlePrototype
             }
         }
 
+        // Engaged turrets and roofs are carved into their neighbours. Those pairs start inside each
+        // other, and pushing them apart at load throws the tower tops off. Let such pairs pass through
+        // each other. Pieces resting on top of each other (a shallow, vertical overlap) still collide.
+        internal static int ReleaseEngagedMembers(List<Rigidbody> bodies)
+        {
+            Physics.SyncTransforms();
+            var shapes = new Collider[bodies.Count][];
+            for (int i = 0; i < bodies.Count; i++)
+                shapes[i] = Array.FindAll(bodies[i].GetComponentsInChildren<Collider>(), c => c.enabled && !c.isTrigger);
+            int released = 0;
+            for (int i = 0; i < shapes.Length; i++)
+            for (int j = i + 1; j < shapes.Length; j++)
+            foreach (var a in shapes[i])
+            foreach (var b in shapes[j])
+            {
+                if (Physics.GetIgnoreLayerCollision(a.gameObject.layer, b.gameObject.layer) || !a.bounds.Intersects(b.bounds)) continue;
+                if (!Physics.ComputePenetration(a, a.transform.position, a.transform.rotation,
+                        b, b.transform.position, b.transform.rotation, out var direction, out float depth)) continue;
+                bool engaged = depth > .04f || (depth > .01f && Mathf.Abs(direction.y) < .7f);
+                if (!engaged) continue;
+                Physics.IgnoreCollision(a, b);
+                released++;
+            }
+            return released;
+        }
+
         void GrandKeep()
         {
             const float firstFloor = 16.15f, secondFloor = 21.52f, eaves = 26.36f;

@@ -495,7 +495,10 @@ namespace DeadlyJenga.CastlePrototype
                 ShrineTownLayout.JoinTimberFrames(layout, Bodies);
             }
             if (Application.isPlaying && settings.layoutPreset == NeedlefrostLayout.Preset)
+            {
+                NeedlefrostLayout.ReleaseEngagedMembers(Bodies);
                 NeedlefrostLayout.JoinSculptedSeats(layout, Bodies);
+            }
             Physics.SyncTransforms();
             if (Application.isPlaying && settings.layoutPreset == TycoonLayout.Preset)
                 breakawaySupports = TycoonSupports.Build(generatedRoot, Bodies, layout);

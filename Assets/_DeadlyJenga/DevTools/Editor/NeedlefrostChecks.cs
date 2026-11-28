@@ -181,7 +181,7 @@ namespace DeadlyJenga.DevTools.Editor
                 foreach(var a in shapes[i])
                 foreach(var b in shapes[j])
                 {
-                    if(Physics.GetIgnoreLayerCollision(a.gameObject.layer,b.gameObject.layer) || !a.bounds.Intersects(b.bounds))continue;
+                    if(Physics.GetIgnoreLayerCollision(a.gameObject.layer,b.gameObject.layer) || Physics.GetIgnoreCollision(a,b) || !a.bounds.Intersects(b.bounds))continue;
                     if(Physics.ComputePenetration(a,a.transform.position,a.transform.rotation,b,b.transform.position,b.transform.rotation,out _,out float depth))
                         deepest=Mathf.Max(deepest,depth);
                 }
@@ -189,7 +189,7 @@ namespace DeadlyJenga.DevTools.Editor
                 overlaps++;
                 if(overlaps<=40)File.AppendAllText(Report,$"OVERLAP #{i} course {placements[i].Course} at {placements[i].Position} with #{j} course {placements[j].Course} at {placements[j].Position} depth {deepest:F3}\n");
             }
-            File.AppendAllText(Report,$"Initial overlaps deeper than 2 cm: {overlaps}\n");
+            File.AppendAllText(Report,$"Initial colliding overlaps deeper than 2 cm: {overlaps}\n");
             var moved=new System.Collections.Generic.HashSet<int>();
             float start=Time.time;
             foreach(float at in new[]{.05f,.1f,.2f,.4f,.8f,1.6f,3f})
