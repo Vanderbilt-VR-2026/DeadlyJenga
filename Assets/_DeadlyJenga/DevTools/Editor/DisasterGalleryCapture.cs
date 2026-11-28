@@ -65,6 +65,11 @@ namespace DeadlyJenga.DevTools.Editor
         [MenuItem("Tools/Deadly Jenga/Captures/Meteor Impacts (Play Mode)")]
         public static void RunMeteorImpactsBatch() => Start("MeteorImpacts");
 
+        // Every approved disaster through its live phases: buildup (warning), peak, aftermath (after it is stopped)
+        // and replay (triggered again), from an overview and a player-eye camera, with the pixel audit on each frame.
+        [MenuItem("Tools/Deadly Jenga/Captures/Disaster Phases (Play Mode)")]
+        public static void RunPhasesBatch() => Start("Phases");
+
         static void Start(string only)
         {
             SessionState.SetString(Key + "Only", only);
@@ -132,6 +137,7 @@ namespace DeadlyJenga.DevTools.Editor
             output = new CaptureOutput(only == "" ? "Disaster Gallery" : only + " Shape");
             if (only == "TsunamiSkins") { yield return SkinShots(session); DemoDisasters.StopAll(session); yield break; }
             if (only == "RainSkins") { yield return RainSkinShots(session); DemoDisasters.StopAll(session); yield break; }
+            if (only == "Phases") { yield return PhaseShots(session); DemoDisasters.StopAll(session); yield break; }
             if (only == "MeteorImpacts")
             {
                 foreach (var meteorName in new[] { "MeteorShower", "PlanetKillerMeteor" })
@@ -275,6 +281,58 @@ namespace DeadlyJenga.DevTools.Editor
                 }
             }
             finally { CandyTsunamiVisuals.SkinOverride = null; }
+        }
+
+        static IEnumerator PhaseShots(CastlePlaySession session)
+        {
+            auditFailures = 0; int frames = 0;
+            var world = Services.World; float r = Mathf.Max(world.Radius, 8);
+            foreach (var kind in new[] { "Tsunami", "Tornado", "AcidRain", "Icey", "Earthquake", "Fire", "MeteorShower", "PlanetKillerMeteor" })
+            {
+                var prefab = DemoDisasters.Prefabs.FirstOrDefault(p => p.name == kind);
+                if (!prefab) { File.AppendAllText(Report, "  FAIL missing prefab " + kind + "\n"); auditFailures++; continue; }
+                DemoDisasters.StopAll(session); session.ResetMap();
+                yield return new WaitForSecondsRealtime(1.5f);
+                // Buildup: a short warning so the approach / build-up state is visible.
+                SetParameter(session, prefab, "warning", 3);
+                File.AppendAllText(Report, kind + ": " + DemoDisasters.Request(session, prefab) + "\n");
+                yield return new WaitForSecondsRealtime(1.6f);
+                PhasePair(session, kind, "1-buildup", r); frames += 2;
+                // Peak: well into the active phase (the tsunami waits for a tall wave).
+                float until = Time.realtimeSinceStartup + (kind == "Tsunami" ? 20 : 0);
+                yield return new WaitForSecondsRealtime(kind == "Tsunami" ? 3 : kind is "MeteorShower" or "PlanetKillerMeteor" ? 4.5f : 5.5f);
+                while (Time.realtimeSinceStartup < until && !Tracked.Waves.Any(w => w.Wave.active && w.Wave.height > 18)) yield return null;
+                PhasePair(session, kind, "2-peak", r); frames += 2;
+                // Aftermath: stopped; residue (charred blocks, puddles, smoke) and cleanup.
+                DemoDisasters.StopAll(session);
+                yield return new WaitForSecondsRealtime(2f);
+                PhasePair(session, kind, "3-aftermath", r); frames += 2;
+                // Replay: the same disaster again with no warning, to prove it starts clean.
+                SetParameter(session, prefab, "warning", 0);
+                File.AppendAllText(Report, kind + " replay: " + DemoDisasters.Request(session, prefab) + "\n");
+                yield return new WaitForSecondsRealtime(kind == "Tsunami" ? 8 : 3.5f);
+                Shot(session, kind + "-4-replay-overview", false); frames++;
+            }
+            string summary = $"Disaster phase gallery: {frames} frames, {auditFailures} failed the pixel audit";
+            File.AppendAllText(Report, summary + "\n"); Debug.Log(summary);
+            if (auditFailures > 0) failed = true;
+        }
+
+        static void SetParameter(CastlePlaySession session, GameObject prefab, string id, float value)
+        {
+            var parameters = DemoDisasters.Parameters(prefab);
+            for (int i = 0; i < parameters.Count; i++) if (parameters[i].id == id) DemoDisasters.SetValue(session, prefab, i, value);
+        }
+
+        // Overview (the existing wide framing) plus a player standing at the castle's foot looking at the danger.
+        static void PhasePair(CastlePlaySession session, string kind, string phase, float r)
+        {
+            Shot(session, kind + "-" + phase + "-overview", false);
+            var world = Services.World; var focus = Focus(out bool found);
+            Vector3 eye = world.Center + new Vector3(.6f, 0, -1).normalized * r * 1.15f;
+            if (Physics.Raycast(eye + Vector3.up * 50, Vector3.down, out var hit, 120, (1 << Layers.Surface) | (1 << Layers.Block))) eye = hit.point;
+            eye += Vector3.up * 1.7f;
+            View(session, kind + "-" + phase + "-player-eye", eye, found ? Vector3.Lerp(world.Center + Vector3.up * world.TopHeight * .4f, focus, .6f) : world.Center + Vector3.up * world.TopHeight * .45f, 75);
         }
 
         static IEnumerator RainSkinShots(CastlePlaySession session)
@@ -424,8 +482,30 @@ namespace DeadlyJenga.DevTools.Editor
                 File.WriteAllBytes(path, texture.EncodeToPNG());
                 output.Add(path, file, "image", 1280, 720);
                 File.AppendAllText(Report, "  shot " + file + " camera=" + position + " focus=" + focus + "\n");
+                Audit(texture, file);
             }
             finally { camera.targetTexture = null; RenderTexture.active = old; RenderTexture.ReleaseTemporary(rt); Object.Destroy(texture); }
         }
+
+        // Pixel audit for every frame: missing-shader magenta and blown-out white are logged as PASS/FAIL lines.
+        // Snow and frost are legitimately white, so only a frame that is mostly pure white counts as a whiteout.
+        static void Audit(Texture2D texture, string file)
+        {
+            var pixels = texture.GetPixels32(); int magenta = 0, white = 0, black = 0;
+            for (int i = 0; i < pixels.Length; i += 4)
+            {
+                var p = pixels[i];
+                if (p.r > 220 && p.b > 220 && p.g < 60) magenta++;
+                if (p.r > 250 && p.g > 250 && p.b > 250) white++;
+                if (p.r < 4 && p.g < 4 && p.b < 4) black++;
+            }
+            float n = pixels.Length / 4f, m = magenta / n, w = white / n, b = black / n;
+            bool ok = m < .01f && w < .35f && b < .6f;
+            string line = (ok ? "PASS" : "FAIL") + $" frame {file}: magenta={m:P1} white={w:P1} black={b:P1}";
+            File.AppendAllText(Report, "  " + line + "\n");
+            if (ok) Debug.Log(line); else Debug.LogWarning(line);
+            if (!ok) auditFailures++;
+        }
+        static int auditFailures;
     }
 }
