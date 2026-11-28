@@ -252,7 +252,7 @@ namespace DeadlyJenga.DevTools.Editor
             Check(session, "Game.unity solo session exists");
             yield return Wait(4);
             if (Services.Session?.SurvivorBots != null) { Services.Session.SurvivorBots.AutoFill = false; Services.Session.SurvivorBots.Clear(); }
-            foreach (float scale in new[] { 1f, .1f, .03f, .01f, .003f })
+            foreach (float scale in new[] { 1f, .7f, .7f, .5f, .5f, .3f, .3f, .2f, .2f })
             {
                 ShrineCityLayout.JointScale = scale;
                 yield return LoadMap(); yield return Wait(1);
@@ -266,9 +266,9 @@ namespace DeadlyJenga.DevTools.Editor
                 int before = map.GetComponentsInChildren<FixedJoint>().Length;
                 float peak = 0;
                 var quake = BreakwaterVillageChecks.MakeHazard("Earthquake", new Dictionary<string, float>
-                    { { "force", 25 }, { "frequency", 1.35f }, { "vertical", .12f }, { "warning", 0 }, { "duration", 12 } });
+                    { { "force", 8 }, { "frequency", 2 }, { "vertical", .25f }, { "warning", 0 }, { "duration", 30 } });   // in-match defaults
                 quake.Begin();
-                for (float end = Time.realtimeSinceStartup + 12.5f; Time.realtimeSinceStartup < end;)
+                for (float end = Time.realtimeSinceStartup + 30.5f; Time.realtimeSinceStartup < end;)
                 {
                     foreach (var b in map.Bodies) if (b && b.gameObject.activeInHierarchy) peak = Mathf.Max(peak, b.linearVelocity.magnitude);
                     yield return Wait(.25f);
@@ -277,8 +277,8 @@ namespace DeadlyJenga.DevTools.Editor
                 yield return Wait(3);
                 int quakeFell = map.Bodies.Select((b, i) => b && Vector3.Distance(b.position, settled[i]) > 1 ? 1 : 0).Sum();
                 int quakeBroken = before - map.GetComponentsInChildren<FixedJoint>().Length;
-                Line($"SWEEP scale={scale} stand fell={standFell} snapped={standBroken} | quake25 fell={quakeFell} snapped={quakeBroken} peakSpeed={peak:F2} m/s");
-                Capture(map, $"ShrineCity-Sweep-{scale}.png");
+                Line($"SWEEP scale={scale} stand fell={standFell} snapped={standBroken} | match quake (8 m/s2, 2 Hz, 30 s) fell={quakeFell} snapped={quakeBroken} peakSpeed={peak:F2} m/s");
+                Capture(map, $"ShrineCity-Sweep-{scale}-{Time.frameCount}.png");
             }
             ShrineCityLayout.JointScale = 1;
         }
