@@ -151,6 +151,14 @@ namespace DeadlyJenga.CastlePrototype.Editor
                     bool returned=passedPortal && engine.isKinematic && Vector3.Distance(engine.position,engineStart)<1.2f;
                     if(!returned && elapsed<78)return;
                     Check(passedPortal,"Intact locomotive crossed the pyramid bore");
+                    if(!returned)
+                    {
+                        // where the train stopped, and which spans have shifted from their seats
+                        var shifted=map.Blocks.Select((b,i)=>(b,i)).Where(v=>v.b.name.StartsWith("Railway span",StringComparison.Ordinal))
+                            .Select(v=>(v.b.name,d:Vector3.Distance(v.b.position,initial[v.i]),up:v.b.transform.up.y))
+                            .Where(v=>v.d>.15f||v.up<.98f).Select(v=>v.name+" moved "+v.d.ToString("F2")+" up "+v.up.ToString("F3"));
+                        Log("  engine stopped at "+map.transform.InverseTransformPoint(engine.position).ToString("F1")+" after "+elapsed.ToString("F0")+" s; shifted spans: "+string.Join(", ",shifted));
+                    }
                     Check(returned,"Intact train completed the loop back to the depot");
                     bool newTown=map.SaveLayout()=="sphinx-junction-8";
                     StartPull(newTown?"Timber trestle bent 14":"Timber trestle bent 10");
