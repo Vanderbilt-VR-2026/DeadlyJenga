@@ -96,27 +96,47 @@ namespace DeadlyJenga.CastlePrototype
         // Engaged turrets and roofs are carved into their neighbours. Those pairs start inside each
         // other, and pushing them apart at load throws the tower tops off. Let such pairs pass through
         // each other. Pieces resting on top of each other (a shallow, vertical overlap) still collide.
-        internal static int ReleaseEngagedMembers(List<Rigidbody> bodies)
+        internal static List<Vector2Int> ReleaseEngagedMembers(List<Rigidbody> bodies)
         {
             Physics.SyncTransforms();
             var shapes = new Collider[bodies.Count][];
             for (int i = 0; i < bodies.Count; i++)
                 shapes[i] = Array.FindAll(bodies[i].GetComponentsInChildren<Collider>(), c => c.enabled && !c.isTrigger);
-            int released = 0;
+            var pairs = new List<Vector2Int>();
             for (int i = 0; i < shapes.Length; i++)
             for (int j = i + 1; j < shapes.Length; j++)
-            foreach (var a in shapes[i])
-            foreach (var b in shapes[j])
             {
-                if (Physics.GetIgnoreLayerCollision(a.gameObject.layer, b.gameObject.layer) || !a.bounds.Intersects(b.bounds)) continue;
-                if (!Physics.ComputePenetration(a, a.transform.position, a.transform.rotation,
-                        b, b.transform.position, b.transform.rotation, out var direction, out float depth)) continue;
-                bool engaged = depth > .04f || (depth > .01f && Mathf.Abs(direction.y) < .7f);
-                if (!engaged) continue;
-                Physics.IgnoreCollision(a, b);
-                released++;
+                bool engaged = false;
+                foreach (var a in shapes[i])
+                foreach (var b in shapes[j])
+                {
+                    if (Physics.GetIgnoreLayerCollision(a.gameObject.layer, b.gameObject.layer) || !a.bounds.Intersects(b.bounds)) continue;
+                    if (!Physics.ComputePenetration(a, a.transform.position, a.transform.rotation,
+                            b, b.transform.position, b.transform.rotation, out var direction, out float depth)) continue;
+                    if (depth <= .04f && (depth <= .01f || Mathf.Abs(direction.y) >= .7f)) continue;
+                    Physics.IgnoreCollision(a, b);
+                    engaged = true;
+                }
+                if (engaged) pairs.Add(new Vector2Int(i, j));
             }
-            return released;
+            return pairs;
+        }
+
+        // Up in the palace, the carved-in pieces are one frame: tie each engaged pair with a
+        // breakable joint so an overhanging blade or wing cannot slowly peel away from it.
+        internal static void TieEngagedMembers(List<CastlePlacement> layout, List<Rigidbody> bodies, List<Vector2Int> pairs)
+        {
+            const float palaceFloor = 9;
+            foreach (var pair in pairs)
+            {
+                var a = layout[pair.x];
+                var b = layout[pair.y];
+                if (a.Position.y - a.Size.y * .5f < palaceFloor || b.Position.y - b.Size.y * .5f < palaceFloor) continue;
+                var joint = bodies[pair.x].gameObject.AddComponent<FixedJoint>();
+                joint.connectedBody = bodies[pair.y];
+                joint.breakForce = Mathf.Clamp(Mathf.Min(bodies[pair.x].mass, bodies[pair.y].mass) * 50, 11000, 82000);
+                joint.breakTorque = joint.breakForce * .45f;
+            }
         }
 
         void GrandKeep()

@@ -496,8 +496,9 @@ namespace DeadlyJenga.CastlePrototype
             }
             if (Application.isPlaying && settings.layoutPreset == NeedlefrostLayout.Preset)
             {
-                NeedlefrostLayout.ReleaseEngagedMembers(Bodies);
+                var engaged = NeedlefrostLayout.ReleaseEngagedMembers(Bodies);
                 NeedlefrostLayout.JoinSculptedSeats(layout, Bodies);
+                NeedlefrostLayout.TieEngagedMembers(layout, Bodies, engaged);
             }
             Physics.SyncTransforms();
             if (Application.isPlaying && settings.layoutPreset == TycoonLayout.Preset)

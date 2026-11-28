@@ -84,7 +84,8 @@ namespace DeadlyJenga.DevTools.Editor
                 if (placements[i].Course < 100) continue;
                 var body = map.Bodies[i];
                 if (body.GetComponent<MeshCollider>()?.sharedMesh) sculptures++;
-                var seam = body.GetComponent<FixedJoint>();
+                // The seat is the joint anchored at the member's base; tie joints to engaged neighbours are separate.
+                var seam = body.GetComponents<FixedJoint>().FirstOrDefault(j=>j.anchor.y<-.4f);
                 if (seam && seam.connectedBody && !body.isKinematic) seated++;
             }
             File.AppendAllText(Report,$"Blender sculpted members {sculptures}; breakable seats {seated}\n");
@@ -195,7 +196,7 @@ namespace DeadlyJenga.DevTools.Editor
             foreach(float at in new[]{.05f,.1f,.2f,.4f,.8f,1.6f,3f})
             {
                 while(Time.time-start<at)yield return new WaitForFixedUpdate();
-                int seats=map.Bodies.Count(b=>b.GetComponent<FixedJoint>() is var s && s && s.connectedBody);
+                int seats=map.Bodies.Count(b=>b.GetComponents<FixedJoint>().Any(s=>s.connectedBody && s.anchor.y<-.4f));
                 File.AppendAllText(Report,$"SETTLE t={at:F2} sculpted seats {seats}\n");
                 for(int i=0;i<placements.Count;i++)
                 {
