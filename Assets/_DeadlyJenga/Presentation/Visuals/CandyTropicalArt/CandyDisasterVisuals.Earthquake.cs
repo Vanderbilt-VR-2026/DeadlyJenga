@@ -166,16 +166,23 @@ namespace DeadlyJenga.CandyArt
         {
             var blocks=quakeWorld.Blocks;
             if(blocks==null||cycleAge<=0)return;
-            int step=Mathf.Max(1,blocks.Count/90);
+            // Only blocks on the outside of the castle; dust inside it would be hidden by the other blocks.
+            int step=Mathf.Max(1,blocks.Count/360);
+            float outer=Mathf.Min(quakeBounds.extents.x,quakeBounds.extents.z)*.5f;
             for(int i=0;i<blocks.Count&&quakeDust.Count<260;i+=step)
             {
                 var block=blocks[i];
                 if(!block)continue;
-                float since=cycleAge-QuakeFrontArrival(block.position,quakeBounds)-Hash(i+611)*.3f;
+                var position=block.position;
+                var outward=position-quakeBounds.center;
+                outward.y=0;
+                if(outward.magnitude<outer)continue;
+                float since=cycleAge-QuakeFrontArrival(position,quakeBounds)-Hash(i+611)*.3f;
                 if(since<=0||since>=1.5f)continue;
                 float life=since/1.5f;
                 float width=(.9f+.9f*Hash(i+7))*Mathf.Sin(Mathf.PI*life)*strength*QuakeScale;
-                Puff(quakeDust,block.position+Vector3.down*(.2f+life*1.1f)+QuakeDirection*life*.6f,width*1.7f,width*1.15f,i*13);
+                outward.Normalize();
+                Puff(quakeDust,position+outward*(.9f+width*.55f+life*.8f)+Vector3.down*(.2f+life*1.1f),width*1.7f,width*1.15f,i*13);
             }
         }
 
