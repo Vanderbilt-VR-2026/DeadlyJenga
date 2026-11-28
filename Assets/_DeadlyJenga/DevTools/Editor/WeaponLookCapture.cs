@@ -18,6 +18,8 @@ namespace DeadlyJenga.DevTools.Editor
     [InitializeOnLoad]
     public static class WeaponLookCapture
     {
+        sealed class PickupSource : IEquipmentPickupSource
+        { public EquipmentKind Kind { get; set; } public Vector3 Position { get; set; } public float Duration { get; set; } = 1; }
         const string Key = "WeaponLookCapture";
         static int checks, errors;
         static bool failed, completed;
@@ -209,6 +211,90 @@ namespace DeadlyJenga.DevTools.Editor
                             $"model offset from view (view space) {eye.InverseTransformPoint(model.position):F2}\n");
                         Shoot(close, rt, pixels, kind + "-4-third-person-after-3s.jpg");
                     }
+
+                    // World pickup: the weapon as it lies in the world, with its pickup bubble.
+                    var lying = player.transform.position + side * 2.6f + Vector3.up * .6f;
+                    runtime.RegisterPickup(new PickupSource { Kind = kind, Position = lying });
+                    yield return new WaitForSeconds(.5f);
+                    close.transform.position = lying + (-side * .9f + front * .9f + Vector3.up * .45f).normalized * 2.1f;
+                    close.transform.LookAt(lying);
+                    Shoot(close, rt, pixels, kind + "-5-world-pickup.jpg");
+
+                    // Fire or swing, then the projectile, the impact and a reload where the weapon has them.
+                    var spec = EquipmentSpecifications.Get(kind);
+                    var aim = new Pose(player.ViewPose.position + front * .4f,
+                        Quaternion.LookRotation((front + Vector3.down * .35f).normalized));
+                    int before = runtime.Frame.equipmentSequence;
+                    var held = (IHeldEquipmentRuntime)runtime;
+                    bool fired;
+                    if (spec.charge > 0 || spec.automatic)
+                    {
+                        fired = held.RequestEquipmentTrigger(true, aim);
+                        float holdUntil = Time.time + spec.charge + .25f;
+                        while (Time.time < holdUntil) { held.RequestEquipmentTrigger(true, aim); yield return new WaitForSeconds(.06f); }
+                    }
+                    else fired = runtime.RequestEquipmentAttack(aim);
+                    yield return new WaitForSeconds(.06f);
+                    ShootFirstPerson(view, close, rt, pixels, kind + "-6-fire.jpg");
+                    if (spec.charge > 0 || spec.automatic) held.RequestEquipmentTrigger(false, aim);
+                    File.AppendAllText(Report, $"  {kind} fire request accepted {fired}\n");
+
+                    if (spec.projectileSpeed > 0)
+                    {
+                        yield return new WaitForSeconds(.18f);
+                        var shot = runtime.Frame.weaponProjectiles.FirstOrDefault(p => p.kind == kind);
+                        if (shot != null)
+                        {
+                            close.transform.position = shot.position + (side * 1.2f + Vector3.up * .4f - front * .3f).normalized * 1.8f;
+                            close.transform.LookAt(shot.position);
+                            Shoot(close, rt, pixels, kind + "-7-projectile.jpg");
+                        }
+                        else File.AppendAllText(Report, $"  {kind} no projectile in flight to picture\n");
+                    }
+
+                    Vector3? impact = null;
+                    float impactDeadline = Time.time + 1.6f;
+                    while (impact == null && Time.time < impactDeadline)
+                    {
+                        foreach (var action in runtime.Frame.equipmentActions)
+                        {
+                            if (action == null || action.id <= before || action.kind != kind) continue;
+                            if (action.action == EquipmentAction.Impact) { impact = action.position; break; }
+                            if (action.action == EquipmentAction.Shot && action.endpoints != null && action.endpoints.Length > 0 &&
+                                spec.projectileSpeed <= 0) { impact = action.endpoints[0]; break; }
+                        }
+                        if (impact == null) yield return null;
+                    }
+                    if (impact is Vector3 hit)
+                    {
+                        yield return new WaitForSeconds(.08f);
+                        close.transform.position = hit + (side * 1f + Vector3.up * .8f - front * .6f).normalized * 2.4f;
+                        close.transform.LookAt(hit);
+                        Shoot(close, rt, pixels, kind + "-8-impact.jpg");
+                    }
+                    else File.AppendAllText(Report, $"  {kind} no impact to picture\n");
+
+                    if (spec.magazine > 0 && spec.reloadSeconds > 0)
+                    {
+                        float reloadDeadline = Time.time + 3f;
+                        while (runtime.EquipmentFor(runtime.LocalActorId).reloadRemaining <= 0 && Time.time < reloadDeadline)
+                        {
+                            if (spec.charge > 0 || spec.automatic) held.RequestEquipmentTrigger(true, aim);
+                            else runtime.RequestEquipmentAttack(aim);
+                            yield return new WaitForSeconds(Mathf.Max(.06f, spec.cooldown + .02f));
+                        }
+                        held.RequestEquipmentTrigger(false, aim);
+                        var state = runtime.EquipmentFor(runtime.LocalActorId);
+                        if (state.reloadRemaining > 0)
+                        {
+                            yield return new WaitForSeconds(spec.reloadSeconds * .45f);
+                            close.transform.position = body.center + (front * 1f + side * .45f + Vector3.up * .2f).normalized *
+                                (body.extents.magnitude / Mathf.Sin(close.fieldOfView * Mathf.Deg2Rad * .5f));
+                            close.transform.LookAt(body.center);
+                            Shoot(close, rt, pixels, kind + "-9-reload.jpg");
+                        }
+                        else File.AppendAllText(Report, $"  {kind} did not reach a reload within 3 s\n");
+                    }
                     yield return null;
                 }
 
@@ -318,6 +404,11 @@ namespace DeadlyJenga.DevTools.Editor
                 pixels.ReadPixels(new Rect(0, 0, rt.width, rt.height), 0, 0);
                 pixels.Apply();
                 File.WriteAllBytes(Path.Combine(Output, file), pixels.EncodeToJPG(90));
+                // Unity draws a missing or broken shader as pure magenta; count those pixels in every picture.
+                var colors = pixels.GetPixels32();
+                int magenta = 0;
+                foreach (var c in colors) if (c.r > 245 && c.g < 12 && c.b > 245) magenta++;
+                Check(magenta < colors.Length / 500, $"No missing-shader magenta in {file} ({magenta} pixels)");
             }
             finally
             {

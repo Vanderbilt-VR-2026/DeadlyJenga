@@ -690,7 +690,7 @@ namespace DeadlyJenga.DevTools.Editor
                 Check(runtime.Frame.equipmentActions.Any(action=>action.id>sequence&&action.kind==kind&&
                     (action.action==EquipmentAction.Pickup||action.action==EquipmentAction.Swap)),"Pickup event starts "+kind);
                 yield return null;
-                yield return new WaitForEndOfFrame();
+                yield return null;
                 var model=player.transform.Find("Visual - "+kind);
                 Check(model,"Live avatar displays "+kind);
                 var gathering=model.localPosition;
@@ -1311,12 +1311,33 @@ namespace DeadlyJenga.DevTools.Editor
             }
             var hud=session.GetComponent<CandyDemoHud>();var flags=System.Reflection.BindingFlags.Instance|System.Reflection.BindingFlags.NonPublic;
             Check(DemoMenuSections.Tabs.Length==4&&DemoMenuSections.Sections.SelectMany(x=>x).Contains("Disasters")&&DemoMenuSections.Sections.SelectMany(x=>x).Contains("Powerup spawning"),"Four main tabs retain disasters and niche powerup controls");
-            for(int i=0;i<4;i++){typeof(CandyDemoHud).GetField("page",flags).SetValue(hud,i);typeof(CandyDemoHud).GetField("subsection",flags).SetValue(hud,0);session.SetMenu(true);yield return new WaitForSeconds(.15f);yield return new WaitForEndOfFrame();var shot=ScreenCapture.CaptureScreenshotAsTexture();File.WriteAllBytes(ProjectPath.Report("Arsenal-Menu-"+i+".png"),shot.EncodeToPNG());Object.Destroy(shot);}
+            // WaitForEndOfFrame never fires in an unfocused test editor (the run timed out here), so the
+            // menu pictures are rendered from the active camera instead of a screen capture.
+            for(int i=0;i<4;i++){typeof(CandyDemoHud).GetField("page",flags).SetValue(hud,i);typeof(CandyDemoHud).GetField("subsection",flags).SetValue(hud,0);session.SetMenu(true);yield return new WaitForSeconds(.15f);yield return null;SaveCameraPicture(session.ActiveCamera,"Arsenal-Menu-"+i+".png");}
             var menu=Object.FindFirstObjectByType<CastleWorldMenu>(FindObjectsInactive.Include);Check(menu,"VR menu exists");menu.Show(true,session.ActiveCamera);typeof(CastleWorldMenu).GetField("menuCategory",flags).SetValue(menu,-1);typeof(CastleWorldMenu).GetMethod("PointOrganizedMenu",flags).Invoke(menu,new object[]{session.ActiveCamera,false});var texts=menu.GetComponentsInChildren<UnityEngine.UI.Text>().Select(t=>t.text).ToArray();Check(DemoMenuSections.Tabs.All(t=>texts.Contains(t)),"VR root shows exactly the four requested main categories");menu.Show(false,session.ActiveCamera);
             Check(Shader.Find("DeadlyJenga/Pickup Cloud")&&!UnityEditor.ShaderUtil.ShaderHasError(Shader.Find("DeadlyJenga/Pickup Cloud")),"Static-cloud pickup shader compiles");
             session.SetMenu(false);yield return ExpandedBehaviourChecks.Run(session,Check);
             Check(errors==0,"No unexpected runtime errors");Object.Destroy(floor);
         }
+        static void SaveCameraPicture(Camera camera, string file)
+        {
+            if (!camera) return;
+            var rt = new RenderTexture(1280, 720, 24);
+            var pixels = new Texture2D(1280, 720, TextureFormat.RGB24, false);
+            var oldTarget = camera.targetTexture; var oldActive = RenderTexture.active;
+            try
+            {
+                camera.targetTexture = rt; camera.Render(); RenderTexture.active = rt;
+                pixels.ReadPixels(new Rect(0, 0, 1280, 720), 0, 0); pixels.Apply();
+                File.WriteAllBytes(ProjectPath.Report(file), pixels.EncodeToPNG());
+            }
+            finally
+            {
+                camera.targetTexture = oldTarget; RenderTexture.active = oldActive;
+                rt.Release(); Object.Destroy(rt); Object.Destroy(pixels);
+            }
+        }
+
         public static void RunWeaponMotion() => Start(false, motionOnly:true);
 
         public static void RunReviewedOrdnance() => Start(false, motionOnly:true, ordnanceOnly:true);
