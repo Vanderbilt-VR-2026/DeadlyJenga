@@ -30,8 +30,9 @@ namespace DeadlyJenga.CandyPlayers
                         material && material.HasProperty("_BaseColor") ? material.GetColor("_BaseColor") : Color.white;
                     parts.Add(new EquipmentModelPart{mesh=mesh.sharedMesh,material=material,local=model.worldToLocalMatrix*renderer.transform.localToWorldMatrix,color=color});
                 }
-                // Skinned parts (the Iron Suit, posed weapon pieces) are baked into still meshes, so the pickup
-                // shows the real model instead of falling back to the icon.
+                // Skinned weapon pieces (for example the Chaingun's rotating barrels) are baked into still meshes so
+                // the pickup shows the whole weapon. The Iron Suit keeps its badge icon: baking it copies the whole body.
+                if(value!=EquipmentKind.PoweredArmor)
                 foreach(var skinned in model.GetComponentsInChildren<SkinnedMeshRenderer>())
                 {
                     if(!skinned.enabled||!skinned.sharedMesh)continue;
