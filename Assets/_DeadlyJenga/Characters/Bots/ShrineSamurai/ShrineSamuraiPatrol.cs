@@ -10,7 +10,8 @@ namespace DeadlyJenga.Characters
         sealed class Route
         {
             public Transform island;
-            public GameObject model;
+            // Object, not GameObject: Unity 6.3 can store a model reference as its Prefab asset.
+            public Object model;
             public float phase;
         }
 
@@ -26,10 +27,20 @@ namespace DeadlyJenga.Characters
             for (int i = 0; i < routes.Length; i++)
             {
                 var route = routes[i];
+                if (!route.model) { Debug.LogWarning("Shrine Town swimmer has no model assigned.", this); continue; }
                 var root = new GameObject(route.model.name).transform;
                 root.SetParent(transform, false);
 
-                var model = Instantiate(route.model, root);
+                var made = Instantiate(route.model, root);
+                var model = made as GameObject;
+                if (!model && made is Component part) model = part.gameObject;
+                if (!model)
+                {
+                    Debug.LogWarning("Shrine Town swimmer model is not a GameObject: " + route.model.name, this);
+                    if (made) Destroy(made);
+                    Destroy(root.gameObject);
+                    continue;
+                }
                 var player = model.GetComponentInChildren<Animation>();
                 var skin = model.GetComponentInChildren<SkinnedMeshRenderer>();
                 if (!player || !player.clip || !skin)

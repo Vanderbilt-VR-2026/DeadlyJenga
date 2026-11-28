@@ -1190,11 +1190,17 @@ namespace DeadlyJenga.DevTools.Editor
                 player.Place(mudFeet,Quaternion.identity);
                 for (float end=Time.time+session.Modes.Frame.rules.sinkGraceSeconds+2;Time.time<end&&!drowned;) yield return null;
                 Check(drowned,"Remaining on exposed mud eliminates the local survivor");
+                // Wait for the survivor to be alive again before dropping them into the channel.
+                bool Alive() => session.Modes.Frame.players.Any(p=>p.id==session.Modes.LocalActorId && p.alive);
                 yield return Wait(2);
+                for (float end=Time.time+8;Time.time<end&&!Alive();) yield return null;
                 drowned=false;
                 var channel = generator.transform.TransformPoint(new Vector3(0,.25f,-18));
                 player.Place(channel,Quaternion.identity);
-                yield return Wait(1.8f);
+                for (float end=Time.time+4;Time.time<end&&!drowned;) yield return null;
+                if (!drowned)
+                    File.AppendAllText(Report,$"Open marsh diagnostics: alive={Alive()} feet={player.transform.position} " +
+                        $"water={generator.waterHeight:F2} channel={channel}\n");
                 Check(drowned,"Local survivor falls into open marsh and raises elimination");
             }
             finally { GameEvents.Eliminated -= OnDeath; }

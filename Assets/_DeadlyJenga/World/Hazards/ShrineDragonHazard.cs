@@ -43,7 +43,9 @@ namespace DeadlyJenga.World.Hazards
         float age, total, radius, scale, heading, power, clock, previousClipTime, nextHit, nextBreath, nextSteam, steamUntil;
         int clipIndex, lastCycle;
         Vector3 position, forward, shore, inward, mouth, left, right, previousLeft, previousRight, flameEnd, target;
-        bool flaming, gripping;
+        bool flaming, gripping, steering;
+        Vector3 velocity, previousGoal;
+        float jukeSeed, pitch;
         Rigidbody grabbed;
         Vector3 gripOffset;
         readonly Collider[] contacts = new Collider[128];
@@ -67,6 +69,7 @@ namespace DeadlyJenga.World.Hazards
             inward=-Radial(heading); target=ChooseBlock(-inward,true);
             shore=target-inward*(scale*1.6f)-Vector3.Cross(Vector3.up,inward)*(scale*1.56f); shore.y=world.WaterHeight(shore)-.15f*scale;
             lastCycle=-1; previousClipTime=0; nextHit=nextBreath=steamUntil=0;nextSteam=2.6f;
+            steering=false; pitch=0; jukeSeed=UnityEngine.Random.Range(0f,100f);
             total=(Airborne?8:6)+Value(0)*Value(1);
             frame=new DisasterFrame {kind=Airborne?"FlyingDragon":"DragonAttack",label=Type.name,center=area.center,size=area.size,points=points};
             DisasterStates.Active.Add(this); Step(0);
@@ -95,14 +98,23 @@ namespace DeadlyJenga.World.Hazards
         }
         void Step(float dt)
         {
-            if(Airborne)Fly();else Land();
-            var samples=tracks.clips[clipIndex].samples;
-            float at=Mathf.Clamp(clock*12,0,samples.Length-1);
-            int i=(int)at;var a=samples[i];var b=samples[Mathf.Min(i+1,samples.Length-1)];
-            Quaternion rot=Quaternion.LookRotation(forward);
-            mouth=position+rot*(Vector3.Lerp(a.mouth,b.mouth,at-i)*scale);
-            left=position+rot*(Vector3.Lerp(a.left,b.left,at-i)*scale);
-            right=position+rot*(Vector3.Lerp(a.right,b.right,at-i)*scale);
+            if(Airborne)Fly(dt);else Land(dt);
+            if(Airborne)
+            {
+                // The flying body is procedural, so the jaw sits a fixed distance ahead of the head point.
+                mouth=position+forward*(scale*.9f)+Vector3.down*(scale*.05f);
+                left=right=mouth;
+            }
+            else
+            {
+                var samples=tracks.clips[clipIndex].samples;
+                float at=Mathf.Clamp(clock*12,0,samples.Length-1);
+                int i=(int)at;var a=samples[i];var b=samples[Mathf.Min(i+1,samples.Length-1)];
+                Quaternion rot=Quaternion.LookRotation(forward);
+                mouth=position+rot*(Vector3.Lerp(a.mouth,b.mouth,at-i)*scale);
+                left=position+rot*(Vector3.Lerp(a.left,b.left,at-i)*scale);
+                right=position+rot*(Vector3.Lerp(a.right,b.right,at-i)*scale);
+            }
             if(!Airborne && dt>0)Claws(dt);
             if(age>=nextSteam){steamUntil=age+.9f;nextSteam=age+UnityEngine.Random.Range(4.5f,8f);}
             if(flaming)Breath();else flameEnd=mouth;
@@ -111,7 +123,9 @@ namespace DeadlyJenga.World.Hazards
             frame.age=age;frame.remaining=total-age;frame.sampledAt=Time.time;
             previousClipTime=clock;previousLeft=left;previousRight=right;
         }
-        void Fly()
+        // Flight: the pass pattern sets a moving goal; the head chases it with limited speed,
+        // acceleration and turn rate, so every move (rise, strafe, feint, dive) stays smooth.
+        void Fly(float dt)
         {
             float t=age-4,phase=t/Value(1);
             int cycle=Mathf.FloorToInt(Mathf.Max(0,phase));float lane=Mathf.Repeat(phase,1);
@@ -122,19 +136,38 @@ namespace DeadlyJenga.World.Hazards
             float orbit=radius*(Value(2)+.32f*(1-run));
             float rise=Mathf.SmoothStep(0,1,Mathf.Clamp01(age/4));
             float dive=Mathf.SmoothStep(0,1,Mathf.Clamp01((total-age)/4));
-            position=area.center+radial*orbit;
-            position.y=Mathf.Lerp(map.WaterHeight(position)-scale*3.8f,area.max.y+scale*(2.5f-run),rise*dive);
+            // Feints between strafing runs: slow noise, so jukes swing wide and never snap.
+            float juke=(Mathf.PerlinNoise(jukeSeed,age*.32f)-.5f)*2*(1-run);
+            float lift=(Mathf.PerlinNoise(jukeSeed+17,age*.27f)-.5f)*2*(1-run);
+            Vector3 goal=area.center+radial*(orbit+juke*radius*.3f);
+            goal.y=Mathf.Lerp(map.WaterHeight(goal)-scale*3.8f,area.max.y+scale*(2.5f-run+lift*1.4f),rise*dive);
+            float cruise=orbit*1.95f/Value(1);
+            if(!steering || dt<=0)
+            {
+                position=goal;velocity=tangent*cruise;forward=tangent;previousGoal=goal;steering=true;
+            }
+            else
+            {
+                Vector3 goalVelocity=(goal-previousGoal)/dt;previousGoal=goal;
+                const float w=1.1f;   // spring rate (rad/s), critically damped
+                Vector3 accel=(goal-position)*(w*w)+(goalVelocity-velocity)*(2*w);
+                accel=Vector3.ClampMagnitude(accel,Mathf.Max(cruise*1.4f,scale*4));
+                velocity=Vector3.ClampMagnitude(velocity+accel*dt,Mathf.Max(cruise*1.8f,scale*5));
+                position+=velocity*dt;
+            }
             flaming=t>=0 && age<total-4 && lane>.22f && lane<.79f;
             Vector3 aim=target+tangent*((lane-.5f)*radius*.85f);
-            forward=Vector3.Slerp(tangent,(aim-position).normalized,run*.92f).normalized;
-            // Rotate the jet across actual roofs while the huge body translates across the firing lane.
             breathAim=aim;
-            // One continuous cruise stroke, with the banking orbit during repositioning.
-            clipIndex=run>.54f?0:1;clock=Mathf.Repeat(age,clipIndex==0?5f:7.416667f);
+            // The head leads along the flight line and turns toward the target while it breathes.
+            Vector3 travel=velocity.sqrMagnitude>.01f?velocity.normalized:forward;
+            Vector3 look=flaming?Vector3.Slerp(travel,(aim-position).normalized,.45f*run):travel;
+            if(dt>0)forward=Vector3.RotateTowards(forward,look,Mathf.Deg2Rad*110*dt,0).normalized;
+            clipIndex=0;clock=age;
         }
         Vector3 breathAim;
-        void Land()
+        void Land(float dt)
         {
+            Vector3 before=position;
             float t=age-3;int cycle=Mathf.FloorToInt(Mathf.Max(0,t)/Value(1));
             if(cycle!=lastCycle){lastCycle=cycle;target=ChooseBlock(-inward,true);grabbed=null;gripping=false;struck.Clear();}
             clipIndex=0;
@@ -145,13 +178,20 @@ namespace DeadlyJenga.World.Hazards
             position=shore-inward*(air*radius*.9f);
             // The entrance breaches, arcs above the water, then settles onto the palms.
             position.y=shore.y+Mathf.Sin(air*Mathf.PI)*scale*3.8f-air*air*scale*4.5f;
-            forward=inward;
+            if(dt>0)
+            {
+                Vector3 step=(position-before)/dt;
+                float climb=Mathf.Atan2(step.y,new Vector2(step.x,step.z).magnitude+scale*2)*Mathf.Rad2Deg;
+                pitch=Mathf.Lerp(pitch,Mathf.Clamp(climb,-30,30),1-Mathf.Exp(-4*dt));
+            }
+            forward=Quaternion.AngleAxis(-pitch,Vector3.Cross(Vector3.up,inward))*inward;
             flaming=age>=3 && age<total-3 && cycle%2==0 && clock>7.72f && clock<8.72f;
             breathAim=target;
         }
         void Breath()
         {
             Vector3 d=breathAim-mouth;
+            if(Airborne && d.sqrMagnitude>.01f && Vector3.Angle(forward,d)>50)d=Vector3.RotateTowards(forward,d.normalized,50*Mathf.Deg2Rad,0)*d.magnitude;
             float reach=Mathf.Max(scale*2,radius*Value(3));
             if(d.sqrMagnitude<.01f){flameEnd=mouth;return;}
             bool hit=Physics.SphereCast(mouth,Mathf.Clamp(scale*.075f,.10f,.6f),d.normalized,out var h,reach,Mask,QueryTriggerInteraction.Ignore);

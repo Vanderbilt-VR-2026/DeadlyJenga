@@ -424,6 +424,12 @@ namespace DeadlyJenga.CastlePrototype
                     foundation.GetComponent<BoxCollider>().enabled = false;
                     ShrineTownLayout.BuildStreetColliders(generatedRoot,transform.InverseTransformPoint(Vector3.up*waterHeight).y,shrineMudMaterial ? shrineMudMaterial : keepMaterial);
                 }
+                else if (settings.layoutPreset == ShrineCityLayout.Preset)
+                {
+                    // The authored mud islands replace the flat foundation.
+                    foundation.GetComponent<BoxCollider>().enabled = false;
+                    ShrineCityLayout.BuildGround(generatedRoot, shrineMudMaterial ? shrineMudMaterial : keepMaterial);
+                }
             }
             foreach (var p in layout)
             {
@@ -487,6 +493,7 @@ namespace DeadlyJenga.CastlePrototype
                 body.solverIterations = settings.cathedral ? 80 : tallKeep ? 60 : 20;
                 body.solverVelocityIterations = settings.cathedral ? 20 : tallKeep ? 16 : 8;
                 body.sleepThreshold = .005f;
+                if (settings.layoutPreset == ShrineCityLayout.Preset) ShrineCityLayout.Configure(Bodies.Count, body, block);
                 Bodies.Add(body);
             }
             if (Application.isPlaying && settings.layoutPreset == ShrineTownLayout.Preset)
@@ -496,6 +503,8 @@ namespace DeadlyJenga.CastlePrototype
             }
             if (Application.isPlaying && settings.layoutPreset == NeedlefrostLayout.Preset)
                 NeedlefrostLayout.JoinSculptedSeats(layout, Bodies);
+            if (Application.isPlaying && settings.layoutPreset == ShrineCityLayout.Preset)
+                ShrineCityLayout.Join(Bodies);
             Physics.SyncTransforms();
             if (Application.isPlaying && settings.layoutPreset == TycoonLayout.Preset)
                 breakawaySupports = TycoonSupports.Build(generatedRoot, Bodies, layout);

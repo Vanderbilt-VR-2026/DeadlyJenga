@@ -62,6 +62,9 @@ namespace DeadlyJenga.CastlePrototype
             if(original!=null) original.supportedModes=new[]{"ninja","hill","survival","infection","demo"};
             var ninja=list.Find(m=>m.id=="mode-ninja-temple");
             if(ninja!=null){ninja.recommendedMode="ninja";ninja.supportedModes=new[]{"ninja","hill","survival","infection","demo"};}
+            AddMap(list,"shrine-city","Shrine City (physics preview)","survival",8,scene,true);
+            var shrineCity=list.Find(m=>m.id=="mode-shrine-city");
+            if(shrineCity!=null) shrineCity.supportedModes=new[]{"survival","demo","hill"};
             AddMap(list,"vanderbilt","Campus (LoD2)","demo",1,scene,true);
             var campus=list.Find(m=>m.id=="mode-vanderbilt");
             if(campus!=null){campus.title="Campus (LoD2)";campus.supportedModes=new[]{"demo","hill","ctf"};campus.walkableIsland=true;}
