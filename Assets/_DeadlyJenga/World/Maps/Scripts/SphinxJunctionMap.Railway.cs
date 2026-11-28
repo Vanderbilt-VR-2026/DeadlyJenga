@@ -97,8 +97,9 @@ namespace DeadlyJenga.CastlePrototype
                 seats.Add(unit.transform.localPosition);
                 var span=End();
                 track.Add(span);
-                // spans over the sphinx ride on its braced bridges
-                if (structure != null && structure.Has(TownMarker) && (i is 3 or 4 or 16 or 17 || structure.Has("@braced Railway span "+i)))
+                // spans over the sphinx ride on its braced bridges; spans inside the pyramid on the hall's braced trestles
+                if (structure != null && structure.Has(TownMarker) && (i is 3 or 4 or 16 or 17 || InsidePyramid(mid) ||
+                                                                       structure.Has("@braced Railway span "+i)))
                     anchored.Add(span);
             }
             stationDistance=chainage[21]; mileage=stationDistance; dwell=3;
