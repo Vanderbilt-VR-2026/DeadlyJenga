@@ -158,6 +158,9 @@ namespace DeadlyJenga.CandyArt
             QuakeBlockDust(cycleAge-QuakeAftershock,strength*.6f);
         }
 
+        // Bigger castles get bigger dust so the quake still reads from the overview.
+        float QuakeScale=>Mathf.Clamp(quakeBounds.size.magnitude/30,1,2.6f);
+
         // Dust shaken off the castle's blocks as the shock front passes them.
         void QuakeBlockDust(float cycleAge,float strength)
         {
@@ -171,7 +174,7 @@ namespace DeadlyJenga.CandyArt
                 float since=cycleAge-QuakeFrontArrival(block.position,quakeBounds)-Hash(i+611)*.3f;
                 if(since<=0||since>=1.5f)continue;
                 float life=since/1.5f;
-                float width=(.9f+.9f*Hash(i+7))*Mathf.Sin(Mathf.PI*life)*strength;
+                float width=(.9f+.9f*Hash(i+7))*Mathf.Sin(Mathf.PI*life)*strength*QuakeScale;
                 Puff(quakeDust,block.position+Vector3.down*(.2f+life*1.1f)+QuakeDirection*life*.6f,width*1.7f,width*1.15f,i*13);
             }
         }
@@ -186,9 +189,9 @@ namespace DeadlyJenga.CandyArt
                 if(age>=lifetime||quakeDust.Count>=180)return;
                 float life=age/lifetime;
                 float envelope=Mathf.Sin(Mathf.PI*life);
-                float width=(1.5f+1.9f*Hash(index+36)+life*2.4f)*strength*Mathf.Sqrt(envelope)*quakeCellScale;
+                float width=(1.5f+1.9f*Hash(index+36)+life*2.4f)*strength*Mathf.Sqrt(envelope)*quakeCellScale*Mathf.Sqrt(QuakeScale);
                 Vector3 drift=QuakeDirection*(age*.9f)+Vector3.up*(.3f+life*.9f);
-                Puff(quakeDust,sample.point+drift,width,Mathf.Min(2.6f,width*.62f),index*31);
+                Puff(quakeDust,sample.point+drift,width,Mathf.Min(2.6f*QuakeScale,width*.62f),index*31);
                 if(index%3==0)Puff(quakeDust,sample.point+drift*1.6f+Vector3.up*width*.3f,width*.7f,width*.55f,index*17+90);
                 if(index%5==0&&age<.65f&&candyChips.Count<384)
                 {

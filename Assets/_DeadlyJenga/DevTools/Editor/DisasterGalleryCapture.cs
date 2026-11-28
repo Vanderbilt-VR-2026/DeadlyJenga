@@ -359,7 +359,7 @@ namespace DeadlyJenga.DevTools.Editor
             Vector3 away = new Vector3(.6f, 0, -1).normalized; float reach = r;
             foreach (var block in Physics.OverlapSphere(world.Center, 80, 1 << Layers.Block, QueryTriggerInteraction.Ignore))
                 reach = Mathf.Max(reach, Vector3.Dot(block.bounds.center - world.Center, away) + block.bounds.extents.magnitude);
-            Vector3 eye = world.Center + away * (reach + 9);
+            Vector3 eye = world.Center + away * (reach + Mathf.Max(10, world.TopHeight * .75f));
             if (Physics.Raycast(eye + Vector3.up * 50, Vector3.down, out var hit, 120, 1 << Layers.Surface)) eye = hit.point;
             else { float water = world.WaterHeight(eye); eye.y = float.IsFinite(water) ? water : world.Center.y; }
             eye += Vector3.up * 1.7f;
