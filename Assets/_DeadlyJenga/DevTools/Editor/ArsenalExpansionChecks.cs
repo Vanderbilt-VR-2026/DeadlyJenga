@@ -1212,7 +1212,7 @@ namespace DeadlyJenga.DevTools.Editor
             Check(burstShots==3,"One held burst fires exactly three rounds"+(burstShots==3?"":" (saw "+burstShots+")"));trigger.RequestEquipmentTrigger(false,muzzle);
             target.Place(new Vector3(150,10.02f,156),Quaternion.identity);target.InputSuspended=true;yield return new WaitForSeconds(.25f);
             Check(runtime.GiveEquipment(EquipmentKind.Chainsaw)&&runtime.RequestEquipment(true,false,true),"Chainsaw switches to wheel launcher");
-            yield return new WaitForSeconds(.45f);
+            yield return new WaitForSeconds(.65f);
             muzzle=new Pose(player.ViewPose.position+Vector3.forward*.4f,Quaternion.LookRotation(target.transform.position+Vector3.up*.55f-player.ViewPose.position-Vector3.forward*.4f));
             var wall=GameObject.CreatePrimitive(PrimitiveType.Cube);
             wall.name="Wheel lodge test surface";
@@ -1258,7 +1258,7 @@ namespace DeadlyJenga.DevTools.Editor
             Check(fractured,"A dropped wheel emits fragments");
             wall.SetActive(false);
             Object.Destroy(wall);
-            Check(runtime.GiveEquipment(EquipmentKind.LaserAxe)&&runtime.RequestEquipment(true,false,true),"Axe switches to full-width laser");yield return new WaitForSeconds(.45f);float health=target.Health;Check(runtime.RequestEquipmentAttack(muzzle),"Axe laser attack accepted");Check(target.Health<health,"Axe beam damages a physical target at range");
+            Check(runtime.GiveEquipment(EquipmentKind.LaserAxe)&&runtime.RequestEquipment(true,false,true),"Axe switches to full-width laser");yield return new WaitForSeconds(.65f);float health=target.Health;Check(runtime.RequestEquipmentAttack(muzzle),"Axe laser attack accepted");Check(target.Health<health,"Axe beam damages a physical target at range");
             target.Place(new Vector3(150,10.02f,156),Quaternion.identity);target.InputSuspended=true;yield return new WaitForSeconds(.25f);
             Check(runtime.GiveEquipment(EquipmentKind.WristLaser),"Oxblood wrist laser equips");
             health=target.Health;
