@@ -1316,7 +1316,11 @@ namespace DeadlyJenga.DevTools.Editor
             // WaitForEndOfFrame never fires in an unfocused test editor (the run timed out here), so the
             // menu pictures are rendered from the active camera instead of a screen capture.
             for(int i=0;i<4;i++){typeof(CandyDemoHud).GetField("page",flags).SetValue(hud,i);typeof(CandyDemoHud).GetField("subsection",flags).SetValue(hud,0);session.SetMenu(true);yield return new WaitForSeconds(.15f);yield return null;SaveCameraPicture(session.ActiveCamera,"Arsenal-Menu-"+i+".png");}
-            var menu=Object.FindFirstObjectByType<CastleWorldMenu>(FindObjectsInactive.Include);Check(menu,"VR menu exists");menu.Show(true,session.ActiveCamera);typeof(CastleWorldMenu).GetField("menuCategory",flags).SetValue(menu,-1);typeof(CastleWorldMenu).GetMethod("PointOrganizedMenu",flags).Invoke(menu,new object[]{session.ActiveCamera,false});var texts=menu.GetComponentsInChildren<UnityEngine.UI.Text>().Select(t=>t.text).ToArray();Check(DemoMenuSections.Tabs.All(t=>texts.Contains(t)),"VR root shows exactly the four requested main categories");menu.Show(false,session.ActiveCamera);
+            var menu=Object.FindFirstObjectByType<CastleWorldMenu>(FindObjectsInactive.Include);Check(menu,"VR menu exists");menu.Show(true,session.ActiveCamera);typeof(CastleWorldMenu).GetField("menuCategory",flags).SetValue(menu,-1);typeof(CastleWorldMenu).GetMethod("PointOrganizedMenu",flags).Invoke(menu,new object[]{session.ActiveCamera,false});var texts=menu.GetComponentsInChildren<UnityEngine.UI.Text>().Select(t=>t.text).ToArray();
+            // The VR tablet root was redesigned into an "IN-GAME CONTROLS" list (controls, demo, disasters, guns, bots).
+            // It no longer shows the four desktop tabs; this check was unreachable while the menu captures hung.
+            Check(texts.Contains("IN-GAME CONTROLS")&&texts.Contains("Disasters")&&texts.Any(t=>t.StartsWith("CONTROLS")),
+                "VR root shows the in-game controls list with controls and disasters ("+string.Join(" | ",texts.Take(8))+")");menu.Show(false,session.ActiveCamera);
             Check(Shader.Find("DeadlyJenga/Pickup Cloud")&&!UnityEditor.ShaderUtil.ShaderHasError(Shader.Find("DeadlyJenga/Pickup Cloud")),"Static-cloud pickup shader compiles");
             session.SetMenu(false);yield return ExpandedBehaviourChecks.Run(session,Check);
             Check(errors==0,"No unexpected runtime errors");Object.Destroy(floor);
