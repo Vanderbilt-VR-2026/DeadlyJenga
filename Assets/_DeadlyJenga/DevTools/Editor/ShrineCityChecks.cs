@@ -187,7 +187,12 @@ namespace DeadlyJenga.DevTools.Editor
                 for (float end = Time.time + 15; Time.time < end && !NetworkActors.Alive(session.Player);) yield return null;
                 yield return Wait(1);
                 var back = session.Player;
-                Check(NetworkActors.Alive(back) && back.transform.position.y > water + .2f, "Survivor respawns alive and dry");
+                Vector3 landed = back.transform.position;
+                died = false;
+                yield return Wait(3);                       // the respawn spot must keep the survivor alive (no sinking, no drowning)
+                bool alive = NetworkActors.Alive(back);
+                Line($"RESPAWN alive={alive} at={landed} now={back.transform.position} water={water:F2} eliminatedAgain={died}");
+                Check(alive && !died && landed.y > water + .05f, "Survivor respawns alive above the water and stays alive for 3 s");
             }
             finally { GameEvents.Eliminated -= OnDeath; }
 
