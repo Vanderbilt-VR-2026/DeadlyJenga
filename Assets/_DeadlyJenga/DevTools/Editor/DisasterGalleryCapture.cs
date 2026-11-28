@@ -304,8 +304,7 @@ namespace DeadlyJenga.DevTools.Editor
                 while (Time.realtimeSinceStartup < until && !Tracked.Waves.Any(w => w.Wave.active && w.Wave.height > 18) && !hazardEnded) yield return null;
                 GameEvents.HazardEnded -= OnHazardEnded;
                 // The Planet Killer ends on impact: shoot the blast just after it lands.
-                if (kind == "PlanetKillerMeteor") { File.AppendAllText(Report, "  impact seen=" + hazardEnded + "
-"); yield return new WaitForSecondsRealtime(.7f); }
+                if (kind == "PlanetKillerMeteor") { File.AppendAllText(Report, "  impact seen=" + hazardEnded + "\n"); yield return new WaitForSecondsRealtime(.7f); }
                 PhasePair(session, kind, "2-peak", r); frames += 2;
                 // Aftermath: stopped; residue (charred blocks, puddles, smoke) and cleanup.
                 DemoDisasters.StopAll(session);
