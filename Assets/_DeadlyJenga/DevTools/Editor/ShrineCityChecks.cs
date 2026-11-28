@@ -26,6 +26,13 @@ namespace DeadlyJenga.DevTools.Editor
 
         static ShrineCityChecks() { EditorApplication.playModeStateChanged += State; }
 
+        // Diagnostic: for several joint strengths, stand 8 s then a full-strength earthquake; logs results, never fails.
+        public static void Sweep()
+        {
+            SessionState.SetBool(Key + "Sweep", true);
+            Run();
+        }
+
         public static void Run()
         {
             Directory.CreateDirectory(Path.GetDirectoryName(Report));
@@ -66,7 +73,9 @@ namespace DeadlyJenga.DevTools.Editor
 
         static IEnumerator Guard()
         {
-            var stack = new Stack<IEnumerator>(); stack.Push(Checks());
+            var stack = new Stack<IEnumerator>();
+            bool sweep = SessionState.GetBool(Key + "Sweep", false); SessionState.SetBool(Key + "Sweep", false);
+            stack.Push(sweep ? SweepRuns() : Checks());
             while (stack.Count > 0)
             {
                 bool next = false; object value = null;
@@ -233,6 +242,45 @@ namespace DeadlyJenga.DevTools.Editor
             bool loaded = map.LoadLayout(saved, map.Bodies.Count, new Pose(map.transform.position, map.transform.rotation), map.transform.lossyScale);
             yield return Wait(1);
             Check(loaded && map.Bodies.Count == ShrineCityLayout.BodyCount, "Layout transfer: SaveLayout/LoadLayout rebuilds the same bodies");
+        }
+
+        static IEnumerator SweepRuns()
+        {
+            Application.runInBackground = true; AudioListener.volume = 0;
+            float until = Time.realtimeSinceStartup + 45; CastlePlaySession session;
+            while (!(session = Object.FindFirstObjectByType<CastlePlaySession>()) && Time.realtimeSinceStartup < until) yield return null;
+            Check(session, "Game.unity solo session exists");
+            yield return Wait(4);
+            if (Services.Session?.SurvivorBots != null) { Services.Session.SurvivorBots.AutoFill = false; Services.Session.SurvivorBots.Clear(); }
+            foreach (float scale in new[] { 1f, .1f, .03f, .01f, .003f })
+            {
+                ShrineCityLayout.JointScale = scale;
+                yield return LoadMap(); yield return Wait(1);
+                var map = Map();
+                var start = map.Bodies.Select(b => b.position).ToArray();
+                int joints = map.GetComponentsInChildren<FixedJoint>().Length;
+                yield return Wait(8);
+                int standFell = map.Bodies.Select((b, i) => b && Vector3.Distance(b.position, start[i]) > 1 ? 1 : 0).Sum();
+                int standBroken = joints - map.GetComponentsInChildren<FixedJoint>().Length;
+                var settled = map.Bodies.Select(b => b.position).ToArray();
+                int before = map.GetComponentsInChildren<FixedJoint>().Length;
+                float peak = 0;
+                var quake = BreakwaterVillageChecks.MakeHazard("Earthquake", new Dictionary<string, float>
+                    { { "force", 25 }, { "frequency", 1.35f }, { "vertical", .12f }, { "warning", 0 }, { "duration", 12 } });
+                quake.Begin();
+                for (float end = Time.realtimeSinceStartup + 12.5f; Time.realtimeSinceStartup < end;)
+                {
+                    foreach (var b in map.Bodies) if (b && b.gameObject.activeInHierarchy) peak = Mathf.Max(peak, b.linearVelocity.magnitude);
+                    yield return Wait(.25f);
+                }
+                quake.End(); Object.Destroy(quake.gameObject);
+                yield return Wait(3);
+                int quakeFell = map.Bodies.Select((b, i) => b && Vector3.Distance(b.position, settled[i]) > 1 ? 1 : 0).Sum();
+                int quakeBroken = before - map.GetComponentsInChildren<FixedJoint>().Length;
+                Line($"SWEEP scale={scale} stand fell={standFell} snapped={standBroken} | quake25 fell={quakeFell} snapped={quakeBroken} peakSpeed={peak:F2} m/s");
+                Capture(map, $"ShrineCity-Sweep-{scale}.png");
+            }
+            ShrineCityLayout.JointScale = 1;
         }
 
         static Bounds BodyBounds(Rigidbody body)

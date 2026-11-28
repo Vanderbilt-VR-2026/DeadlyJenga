@@ -46,6 +46,8 @@ namespace DeadlyJenga.CastlePrototype
         }
 
         public static int BodyCount => Load().bodies.Length;
+        // Multiplies every authored joint break force (tuning hook; the Blender-tested value is 1).
+        public static float JointScale = 1;
         public static string Building(int index) => Load().bodies[index].building;
         public static string BodyId(int index) => Load().bodies[index].id;
 
@@ -144,8 +146,8 @@ namespace DeadlyJenga.CastlePrototype
                 joint.connectedBody = b;
                 // A load hanging off a long body twists the joint more than it pulls; scale the torque limit by the lever.
                 float lever = 1 + Vector3.Distance(a.worldCenterOfMass, b.worldCenterOfMass);
-                joint.breakForce = j.f;
-                joint.breakTorque = j.f * lever;
+                joint.breakForce = j.f * JointScale;
+                joint.breakTorque = j.f * JointScale * lever;
                 joint.enablePreprocessing = false;
             }
         }
