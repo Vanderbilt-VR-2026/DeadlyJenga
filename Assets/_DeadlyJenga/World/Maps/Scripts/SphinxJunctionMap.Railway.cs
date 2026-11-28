@@ -42,8 +42,13 @@ namespace DeadlyJenga.CastlePrototype
                     !(structure != null && structure.Has(TownMarker)) && i==11?-2:2.5f;
                 if (structure != null && (i is 3 or 4 or 16 or 17))
                 {
-                    // A bridge nested into the sculpted sphinx is exported as part of that sphinx member.
-                    if (structure.Has("Rail bridge " + i)) AddBakedMember("Rail bridge " + i);
+                    // A bridge nested into the sculpted sphinx is exported as part of that sphinx member. In the baked
+                    // town the bridges are braced to the bonded sphinx (fixed, like the hall trestles).
+                    if (structure.Has("Rail bridge " + i))
+                    {
+                        var bridge = AddBakedMember("Rail bridge " + i);
+                        if (structure.Has(TownMarker)) anchored.Add(bridge);
+                    }
                 }
                 else
                 {
@@ -88,7 +93,11 @@ namespace DeadlyJenga.CastlePrototype
                 for(int s=-1;s<=1;s+=2) Box(s*.59f,.32f,0,.105f,.18f,len,Iron,false);
                 for(int j=-1;j<=1;j+=2) Box(1.94f,.55f,j*len*.38f,.13f,1.1f,.13f,Wood);
                 Box(1.94f,1.04f,0,.13f,.14f,len,Wood);
-                seats.Add(unit.transform.localPosition); track.Add(End());
+                seats.Add(unit.transform.localPosition);
+                var span=End();
+                track.Add(span);
+                // spans over the sphinx ride on its braced bridges
+                if (structure != null && structure.Has(TownMarker) && i is 3 or 4 or 16 or 17) anchored.Add(span);
             }
             stationDistance=chainage[21]; mileage=stationDistance; dwell=3;
             for(int i=0;i<3;i++)

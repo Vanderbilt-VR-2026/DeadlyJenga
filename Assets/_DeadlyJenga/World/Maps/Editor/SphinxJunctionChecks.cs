@@ -260,6 +260,11 @@ namespace DeadlyJenga.CastlePrototype.Editor
                     floor.normal.y<.72f || Physics.CheckCapsule(floor.point+Vector3.up*.38f,
                     floor.point+Vector3.up*1.46f,.29f,mask,QueryTriggerInteraction.Ignore))
                 {
+                    // say what is in the way, so a failure names its cause
+                    bool hasFloor=Physics.Raycast(feet+Vector3.up*.34f,Vector3.down,out var f2,.78f,mask,QueryTriggerInteraction.Ignore);
+                    string blockers=hasFloor?string.Join(", ",Physics.OverlapCapsule(f2.point+Vector3.up*.38f,f2.point+Vector3.up*1.46f,.29f,mask,QueryTriggerInteraction.Ignore)
+                        .Select(c=>(c.attachedRigidbody?c.attachedRigidbody.name:c.name)).Distinct().Take(5)):"";
+                    Log("  floor "+(hasFloor?f2.collider.attachedRigidbody?.name+" y="+f2.point.y.ToString("F2")+" normal "+f2.normal.y.ToString("F2"):"none")+"; in the way: "+blockers);
                     Check(false,name+" lacks footing or standing clearance at "+feet);
                     return;
                 }
