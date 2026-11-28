@@ -138,7 +138,28 @@ namespace DeadlyJenga.DevTools.Editor
             Capture(map, "ShrineCity-Stand-8s.png");
             Check(fell == 0, "The town stands untouched for 8 s (no body falls more than 1 m)");
 
-            // 3. Collapse: knock out each target building's ground floor (upright bodies taller than 1 m near its base)
+            // 3. Gameplay force: the game's own earthquake disaster (same settings as the Breakwater Village check)
+            var quakeStart = map.Bodies.Select(b => b.position).ToArray();
+            int quakeJoints = map.GetComponentsInChildren<FixedJoint>().Length;
+            var quake = BreakwaterVillageChecks.MakeHazard("Earthquake", new Dictionary<string, float>
+                { { "force", 14 }, { "frequency", 1.35f }, { "vertical", .12f }, { "warning", 0 }, { "duration", 12 } });
+            quake.Begin();
+            Check(quake.Active, "The earthquake disaster begins on Shrine City through normal map validation");
+            yield return Wait(12.5f);
+            quake.End(); Object.Destroy(quake.gameObject);
+            yield return Wait(3);
+            int quakeFell = map.Bodies.Select((b, i) => b && Vector3.Distance(b.position, quakeStart[i]) > 1 ? 1 : 0).Sum();
+            int quakeBroken = quakeJoints - map.GetComponentsInChildren<FixedJoint>().Length;
+            Line($"EARTHQUAKE 12 s fell>1m={quakeFell} jointsBroken={quakeBroken}");
+            Capture(map, "ShrineCity-Earthquake.png");
+            Check(quakeFell >= 5 && quakeBroken >= 10, "The earthquake disaster breaks the town (5+ bodies fall, 10+ joints snap)");
+
+            // Fresh town for the scripted collapse
+            yield return LoadMap();
+            yield return Wait(4);
+            map = Map();
+
+            // 4. Collapse: knock out each target building's ground floor (upright bodies taller than 1 m near its base)
             var bounds = map.Bodies.Select(b => BodyBounds(b)).ToArray();
             var baseOf = new Dictionary<string, float>();
             for (int i = 0; i < bounds.Length; i++)
