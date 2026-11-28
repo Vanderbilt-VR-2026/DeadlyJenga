@@ -71,7 +71,8 @@ namespace DeadlyJenga.CastlePrototype
             }
             Railway();
             Physics.SyncTransforms();
-            if (structure != null) ExcludeAuthoredOverlaps();
+            // The baked town's colliders are designed not to interpenetrate; resting contacts must stay.
+            if (structure != null && !structure.Has(TownMarker)) ExcludeAuthoredOverlaps();
             SetReplica(replica);
             Revision++;
         }

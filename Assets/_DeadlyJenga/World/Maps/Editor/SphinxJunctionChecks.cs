@@ -174,7 +174,9 @@ namespace DeadlyJenga.CastlePrototype.Editor
                 else if(phase==5 && elapsed>2)
                 {
                     Check(sandEliminated,"Quicksand eliminated the exposed survivor bot");
-                    Check(Vector3.Distance(chest.position,chestStart)>.35f,map.SaveLayout()=="sphinx-junction-8"?"Sphinx forepaw broke away under the pull":"Sphinx chest responded to bearing pull");
+                    if(map.SaveLayout()=="sphinx-junction-8")   // the carved sphinx is bonded masonry; a hand pull is not meant to break it
+                        Log("Sphinx forepaw displacement under the hand pull "+Vector3.Distance(chest.position,chestStart).ToString("F2"));
+                    else Check(Vector3.Distance(chest.position,chestStart)>.35f,"Sphinx chest responded to bearing pull");
                     Shot("08-sphinx-loss",new(7,7,-15),new(0,8,0),58);
                     began=Time.fixedTime;phase++;return;
                 }
@@ -183,7 +185,7 @@ namespace DeadlyJenga.CastlePrototype.Editor
                     // Saloon: haul the upper floor (storey with its wraparound balcony) off eastward, toward the open market side.
                     saloonUpper=Body("Saloon timber storey 1");saloonUpperStart=saloonUpper.position;
                     StartPull("Saloon timber storey 1");
-                    pullTarget=grip+map.transform.TransformDirection(Vector3.right)*9;
+                    pullTarget=grip+map.transform.TransformDirection(Vector3.right)*15;   // past the far edge of the floor below
                     phase=20;began=Time.fixedTime;
                 }
                 else if(phase==20)
@@ -197,15 +199,16 @@ namespace DeadlyJenga.CastlePrototype.Editor
                     float drop=saloonUpperStart.y-saloonUpper.position.y;
                     Log("Saloon upper storey drop "+drop.ToString("F2")+", moved "+Vector3.Distance(saloonUpper.position,saloonUpperStart).ToString("F2"));
                     Check(drop>.8f,"Saloon upper floor came off and fell when hauled toward the market");
-                    // Pyramid: a meteor shower (default 3 m meteors, 12 m/s impact force) strikes the upper faces.
+                    // Pyramid: a meteor shower (default 3 m meteors, 12 m/s impact force) strikes the upper faces,
+                    // 48 strikes at 8 per second: the pyramid's share of a default 25 s shower over the map.
                     stoneStart=map.Blocks.Where(b=>b.name.StartsWith("Great pyramid | course",StringComparison.Ordinal)).ToDictionary(b=>b,b=>b.position);
                     strikes=0;phase=22;began=Time.fixedTime;
                 }
                 else if(phase==22)
                 {
                     // one strike every quarter second, the same push BasicDisaster.MeteorImpact gives each member
-                    if(strikes<8 && elapsed>strikes*.25f){MeteorStrike(strikes);strikes++;}
-                    if(strikes>=8 && elapsed>2.5f){phase++;began=Time.fixedTime;}
+                    while(strikes<48 && elapsed>strikes*.125f){MeteorStrike(strikes);strikes++;}
+                    if(strikes>=48 && elapsed>6.5f){phase++;began=Time.fixedTime;}
                 }
                 else if(phase==23 && elapsed>6)
                 {

@@ -25,18 +25,21 @@ namespace DeadlyJenga.CastlePrototype
 
         internal sealed class Part
         {
-            // Kind byte: 0 drawn only, 1 drawn and solid, 2 solid but not drawn (a designed bearing collider).
+            // Kind byte: 0 drawn only, 1 drawn and solid, 2 solid but not drawn (a designed bearing collider),
+            // 3 like 2 but kept concave (only for the kinematic foundation).
             internal readonly bool Solid;
             internal readonly bool Hidden;
+            internal readonly bool Concave;
             internal readonly Vector3[] Points;
             internal readonly Triangle[] Triangles;
 
             internal Part(BinaryReader reader)
             {
                 byte kind = reader.ReadByte();
-                if (kind > 2) throw new InvalidDataException("Unknown Sphinx Junction part kind.");
+                if (kind > 3) throw new InvalidDataException("Unknown Sphinx Junction part kind.");
                 Solid = kind != 0;
-                Hidden = kind == 2;
+                Hidden = kind >= 2;
+                Concave = kind == 3;
                 int points = reader.ReadUInt16();
                 int triangles = reader.ReadUInt16();
                 if (points < 3 || triangles < 1)

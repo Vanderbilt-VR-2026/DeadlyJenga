@@ -11,6 +11,7 @@ namespace DeadlyJenga.CastlePrototype
         readonly List<int> triangles = new();
         readonly GameObject root;
         float volume,trackLength,startMiter,endMiter;
+        bool concave;   // a concave collider needs a kinematic body from the start
         internal void SetTrackMiters(float length,float start,float end)
         {
             trackLength=length; startMiter=start; endMiter=end;
@@ -41,7 +42,7 @@ namespace DeadlyJenga.CastlePrototype
                 points[i] = fromMap * (part.Points[i] - origin);
             if (part.Hidden)
             {
-                HiddenHull(points);
+                HiddenHull(points, part.Concave);
                 AddBakedVolume(points);
                 return;
             }
@@ -62,15 +63,16 @@ namespace DeadlyJenga.CastlePrototype
             volume += size.x * size.y * size.z * .45f;
         }
         // A designed collider: solid, but the drawn stone beside it keeps its seams.
-        void HiddenHull(Vector3[] points)
+        void HiddenHull(Vector3[] points, bool concave)
         {
             var hull = new Mesh { name = root.name + " bearing hull" };
             hull.SetVertices(points);
             var indices = new int[points.Length - points.Length % 3];
             for (int i = 0; i < indices.Length; i++) indices[i] = i;
             hull.SetTriangles(indices, 0);
+            this.concave |= concave;
             var convex = root.AddComponent<MeshCollider>();
-            convex.convex = true;
+            convex.convex = !concave;
             convex.sharedMesh = hull;
             convex.includeLayers = 1 << DeadlyJenga.Core.Layers.Survivor;
             convex.layerOverridePriority = 12;
@@ -210,6 +212,7 @@ namespace DeadlyJenga.CastlePrototype
             visual.AddComponent<MeshFilter>().sharedMesh = mesh;
             visual.AddComponent<MeshRenderer>().sharedMaterial = material;
             var body = root.AddComponent<Rigidbody>();
+            body.isKinematic = concave;
             body.mass = Mathf.Clamp(volume*2, 4, 115);
             body.solverIterations = 18;
             body.solverVelocityIterations = 5;

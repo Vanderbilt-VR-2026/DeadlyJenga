@@ -146,7 +146,8 @@ def export(path, members, sources, frame_matrix, dg, islands):
                 for p in Pp:
                     for j in range(1, len(p) - 1):
                         tris.append((p[0], p[j + 1], p[j], (0, 0, 0)))
-                count += sum(write_part(f, 2, verts, tris))
+                # the kinematic foundation keeps exact (concave) colliders, as the Blender test's passive meshes
+                count += sum(write_part(f, 3 if n == 'Pyramid podium and hall floor' else 2, verts, tris))
             for verts, tris in o['vis']:
                 count += sum(write_part(f, 0, verts, tris))
             end = f.tell(); f.seek(count_pos); f.write(struct.pack('<H', count)); f.seek(end)
