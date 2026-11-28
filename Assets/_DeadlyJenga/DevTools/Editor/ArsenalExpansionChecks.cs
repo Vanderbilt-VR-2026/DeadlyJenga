@@ -1205,9 +1205,11 @@ namespace DeadlyJenga.DevTools.Editor
             }
             target.Place(new Vector3(150,10.02f,158),Quaternion.identity);target.InputSuspended=true;yield return new WaitForSeconds(.25f);
             var muzzle=new Pose(player.ViewPose.position+Vector3.forward*.4f,Quaternion.LookRotation(target.transform.position+Vector3.up*.55f-player.ViewPose.position-Vector3.forward*.4f));var trigger=(IHeldEquipmentRuntime)runtime;
-            Check(runtime.GiveEquipment(EquipmentKind.StockPistol)&&runtime.RequestEquipment(true,false,true),"Stock pistol switches to burst mode");yield return new WaitForSeconds(.45f);int first=runtime.Frame.equipmentSequence;
+            // Wait past the 0.48 s auto-draw cooldown so the first held pull is a real burst (0.45 s raced it).
+            Check(runtime.GiveEquipment(EquipmentKind.StockPistol)&&runtime.RequestEquipment(true,false,true),"Stock pistol switches to burst mode");yield return new WaitForSeconds(.65f);int first=runtime.Frame.equipmentSequence;
             for(int i=0;i<7;i++){trigger.RequestEquipmentTrigger(true,muzzle);yield return new WaitForSeconds(.08f);}
-            Check(runtime.Frame.equipmentActions.Count(a=>a.id>first&&a.kind==EquipmentKind.StockPistol&&a.action==EquipmentAction.Shot)==3,"One held burst fires exactly three rounds");trigger.RequestEquipmentTrigger(false,muzzle);
+            int burstShots=runtime.Frame.equipmentActions.Count(a=>a.id>first&&a.kind==EquipmentKind.StockPistol&&a.action==EquipmentAction.Shot);
+            Check(burstShots==3,"One held burst fires exactly three rounds"+(burstShots==3?"":" (saw "+burstShots+")"));trigger.RequestEquipmentTrigger(false,muzzle);
             target.Place(new Vector3(150,10.02f,156),Quaternion.identity);target.InputSuspended=true;yield return new WaitForSeconds(.25f);
             Check(runtime.GiveEquipment(EquipmentKind.Chainsaw)&&runtime.RequestEquipment(true,false,true),"Chainsaw switches to wheel launcher");
             yield return new WaitForSeconds(.45f);

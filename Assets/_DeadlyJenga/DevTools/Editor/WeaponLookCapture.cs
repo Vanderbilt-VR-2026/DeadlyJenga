@@ -161,12 +161,19 @@ namespace DeadlyJenga.DevTools.Editor
             close.nearClipPlane = .02f;
             close.clearFlags = CameraClearFlags.SolidColor;
             close.backgroundColor = new Color(.10f, .11f, .13f);
+            // A wall in front of the player gives every shot and swing something to hit.
+            var wall = GameObject.CreatePrimitive(PrimitiveType.Cube);
+            wall.name = "Weapon look impact wall";
+            wall.layer = Layers.Surface;
+            wall.transform.localScale = new Vector3(3, 2.4f, .4f);
+            int index = 0;
             try
             {
                 var kinds = Enum.GetValues(typeof(EquipmentKind)).Cast<EquipmentKind>()
                     .Where(kind => kind >= EquipmentKind.Blaster && kind != EquipmentKind.FlyingHand);
                 foreach (var kind in kinds)
                 {
+                    index++;
                     if (!runtime.GiveEquipment(kind))
                     {
                         Check(false, "Developer grant equips " + kind);
@@ -213,7 +220,9 @@ namespace DeadlyJenga.DevTools.Editor
                     }
 
                     // World pickup: the weapon as it lies in the world, with its pickup bubble.
-                    var lying = player.transform.position + side * 2.6f + Vector3.up * .6f;
+                    // Each pickup gets its own spot so earlier ones don't crowd the picture.
+                    var lying = player.transform.position + side * (3f + (index / 6) * 2.6f) +
+                        front * ((index % 6) * 2.6f - 6.5f) + Vector3.up * .6f;
                     runtime.RegisterPickup(new PickupSource { Kind = kind, Position = lying });
                     yield return new WaitForSeconds(.5f);
                     close.transform.position = lying + (-side * .9f + front * .9f + Vector3.up * .45f).normalized * 2.1f;
@@ -222,8 +231,13 @@ namespace DeadlyJenga.DevTools.Editor
 
                     // Fire or swing, then the projectile, the impact and a reload where the weapon has them.
                     var spec = EquipmentSpecifications.Get(kind);
-                    var aim = new Pose(player.ViewPose.position + front * .4f,
-                        Quaternion.LookRotation((front + Vector3.down * .35f).normalized));
+                    var eyePoint = player.ViewPose.position;
+                    wall.transform.position = eyePoint + front * (spec.melee ? Mathf.Min(1.2f, spec.range * .7f) : 5f) +
+                        Vector3.down * .15f;
+                    wall.transform.rotation = Quaternion.LookRotation(front);
+                    Physics.SyncTransforms();
+                    var aim = new Pose(eyePoint + front * .4f,
+                        Quaternion.LookRotation((wall.transform.position - (eyePoint + front * .4f)).normalized));
                     int before = runtime.Frame.equipmentSequence;
                     var held = (IHeldEquipmentRuntime)runtime;
                     bool fired;
@@ -253,7 +267,8 @@ namespace DeadlyJenga.DevTools.Editor
                     }
 
                     Vector3? impact = null;
-                    float impactDeadline = Time.time + 1.6f;
+                    // Slow projectiles (rocket, grenade capsule, blaster bolt) need longer to land.
+                    float impactDeadline = Time.time + (spec.projectileSpeed > 0 ? 4f : 1.6f);
                     while (impact == null && Time.time < impactDeadline)
                     {
                         foreach (var action in runtime.Frame.equipmentActions)
@@ -346,6 +361,7 @@ namespace DeadlyJenga.DevTools.Editor
                 Object.Destroy(rt);
                 Object.Destroy(pixels);
                 Object.Destroy(close.gameObject);
+                Object.Destroy(wall);
             }
         }
 
@@ -394,6 +410,12 @@ namespace DeadlyJenga.DevTools.Editor
         {
             var oldTarget = camera.targetTexture;
             var oldActive = RenderTexture.active;
+            // The unfocused test editor keeps the pause tablet open; hide any world-space canvas near this camera.
+            var tablets = Object.FindObjectsByType<Canvas>(FindObjectsSortMode.None)
+                .Where(c => c.isRootCanvas && c.renderMode == RenderMode.WorldSpace && c.gameObject.activeSelf &&
+                    (c.transform.position - camera.transform.position).sqrMagnitude < 36)
+                .Select(c => c.gameObject).ToList();
+            foreach (var tablet in tablets) tablet.SetActive(false);
             try
             {
                 camera.targetTexture = rt;
@@ -414,6 +436,7 @@ namespace DeadlyJenga.DevTools.Editor
             {
                 camera.targetTexture = oldTarget;
                 RenderTexture.active = oldActive;
+                foreach (var tablet in tablets) if (tablet) tablet.SetActive(true);
             }
         }
 
