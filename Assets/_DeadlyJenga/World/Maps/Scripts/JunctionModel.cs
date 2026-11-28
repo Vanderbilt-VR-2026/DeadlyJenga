@@ -39,6 +39,12 @@ namespace DeadlyJenga.CastlePrototype
             var origin = root.transform.localPosition;
             for (int i = 0; i < points.Length; i++)
                 points[i] = fromMap * (part.Points[i] - origin);
+            if (part.Hidden)
+            {
+                HiddenHull(points);
+                AddBakedVolume(points);
+                return;
+            }
             for (int i = 0; i < part.Triangles.Length; i++)
             {
                 var face = part.Triangles[i];
@@ -46,10 +52,28 @@ namespace DeadlyJenga.CastlePrototype
             }
             if (!part.Solid) return;
             ConvexHull(first);
+            AddBakedVolume(points);
+        }
+        void AddBakedVolume(Vector3[] points)
+        {
             var bounds = new Bounds(points[0], Vector3.zero);
             foreach (var point in points) bounds.Encapsulate(point);
             var size = bounds.size;
             volume += size.x * size.y * size.z * .45f;
+        }
+        // A designed collider: solid, but the drawn stone beside it keeps its seams.
+        void HiddenHull(Vector3[] points)
+        {
+            var hull = new Mesh { name = root.name + " bearing hull" };
+            hull.SetVertices(points);
+            var indices = new int[points.Length - points.Length % 3];
+            for (int i = 0; i < indices.Length; i++) indices[i] = i;
+            hull.SetTriangles(indices, 0);
+            var convex = root.AddComponent<MeshCollider>();
+            convex.convex = true;
+            convex.sharedMesh = hull;
+            convex.includeLayers = 1 << DeadlyJenga.Core.Layers.Survivor;
+            convex.layerOverridePriority = 12;
         }
         internal void Shape(Vector3 p, Vector3 size, Color tint, int sides = 4, float top = 1,
             Quaternion rotation = default, bool solid = true, float bevel = .07f)

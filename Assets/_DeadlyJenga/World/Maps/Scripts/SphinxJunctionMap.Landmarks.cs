@@ -180,6 +180,13 @@ namespace DeadlyJenga.CastlePrototype
 
         static Vector3 PyramidPoint(float localX,float localZ)
             =>new Vector3(20,0,10)+Quaternion.Euler(0,-40,0)*new Vector3(localX,0,localZ);
+        // Inside the base of the full-height pyramid. It is laid out in the Blender scene (18 m half width,
+        // centred at 36, 16.5, turned 40 degrees), whose reference frame stretches map x by 1.103.
+        static bool InsidePyramid(Vector3 p)
+        {
+            float x=p.x*1.103f-36, y=p.z-16.5f, c=Mathf.Cos(40*Mathf.Deg2Rad), s=Mathf.Sin(40*Mathf.Deg2Rad);
+            return Mathf.Abs(c*x-s*y)<17.5f && Mathf.Abs(s*x+c*y)<17.5f;
+        }
 
         void Pyramid()
         {

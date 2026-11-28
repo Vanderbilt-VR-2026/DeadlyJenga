@@ -73,6 +73,77 @@ namespace DeadlyJenga.CastlePrototype
             Fasten(head, chest);
         }
 
+        // The whole town, pyramid and sphinx come from the Blender export, member by member, with the
+        // same bearing colliders the Blender stand and pull tests use. Only the railway is built in code.
+        const string TownMarker = "Pyramid podium and hall floor";
+        readonly HashSet<Rigidbody> anchored = new();
+
+        void BuildBakedTown()
+        {
+            var byName = new Dictionary<string, Rigidbody>();
+            foreach (var name in structure.Names)
+            {
+                if (name.StartsWith("Rail bridge ", System.StringComparison.Ordinal)) continue;   // placed by Railway()
+                var bounds = structure.SolidBoundsOf(name);
+                Begin(name, bounds.center.x, bounds.center.y, bounds.center.z);
+                // Members driven into the sand bed are piles. The podium and hall floor are the foundation.
+                bool foundation = name == TownMarker;
+                var body = End(!foundation && bounds.min.y < .32f);
+                bakedMembers.Add(body);
+                byName[name] = body;
+                if (foundation) anchored.Add(body);
+                if (name.StartsWith("Plaza paving ", System.StringComparison.Ordinal) && name.EndsWith(",-2", System.StringComparison.Ordinal))
+                    plazas.Add(body);
+            }
+            void Pin(string member, string bearing)
+            {
+                if (byName.TryGetValue(member, out var a) && byName.TryGetValue(bearing, out var b) && a != b) Fasten(a, b);
+            }
+            Mortar(byName, .054f, "Great pyramid | course", "Great pyramid | front railway", "Great pyramid | rear railway",
+                "Great pyramid | teal band");
+            Mortar(byName, .27f, "Sphinx", "Tail", "Hind", "Foreleg");   // looser sculpt joints (15 cm Blender)
+            Pin("Plaza paving 0,0", "Driven sandstone pier 0,0");
+            Pin("Sphinx chest lintel", "Sphinx shoulder bearing -1");
+            Pin("Sphinx chest lintel", "Sphinx shoulder bearing 1");
+            Pin("Sphinx carved crown", "Sphinx chest lintel");
+            string previous = "Sphinx torso bay 13";
+            foreach (var name in structure.Names)
+            {
+                if (!name.StartsWith("Tail", System.StringComparison.Ordinal)) continue;
+                Pin(name, previous);
+                previous = name;
+            }
+        }
+
+        // Masonry: every stone of the pyramid shell (or piece of the carved sphinx) is fastened to each stone it
+        // touches, the lighter stone's joint carrying the bond. The hollow stepped shell then stands as one
+        // body until a pull, an impact or a disaster breaks the joints (matching the Blender stand test).
+        void Mortar(Dictionary<string, Rigidbody> byName, float reach, params string[] prefixes)
+        {
+            var stones = new List<(Rigidbody body, Bounds box)>();
+            foreach (var pair in byName)
+                foreach (var prefix in prefixes)
+                    if (pair.Key.StartsWith(prefix, System.StringComparison.Ordinal))
+                    {
+                        var box = structure.SolidBoundsOf(pair.Key);
+                        box.Expand(reach);   // touching within reach/2 on every side
+                        stones.Add((pair.Value, box));
+                        break;
+                    }
+            stones.Sort((a, b) => a.box.min.x.CompareTo(b.box.min.x));
+            for (int i = 0; i < stones.Count; i++)
+                for (int j = i + 1; j < stones.Count && stones[j].box.min.x <= stones[i].box.max.x; j++)
+                {
+                    if (!stones[i].box.Intersects(stones[j].box)) continue;
+                    var (light, heavy) = stones[i].body.mass <= stones[j].body.mass
+                        ? (stones[i].body, stones[j].body) : (stones[j].body, stones[i].body);
+                    var joint = light.gameObject.AddComponent<FixedJoint>();
+                    joint.connectedBody = heavy;
+                    joint.breakForce = light.mass * 190;
+                    joint.breakTorque = light.mass * 260;
+                }
+        }
+
         void BuildBakedLandmarkAdditions()
         {
             var shop = AddBakedMember("Tack shop frame");

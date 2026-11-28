@@ -36,12 +36,18 @@ namespace DeadlyJenga.CastlePrototype
                 float len=Vector3.Distance(a,b);
                 float yaw=Quaternion.LookRotation(b-a).eulerAngles.y;
                 chainage.Add(total); total+=len;
-                float bottom=i==10?4.28f:i==11?-2:2.5f;
+                // Bents under the pyramid stand on the Hall of the Sun Line floor (map 2.57, plaza 2.5).
+                bool inHall = structure != null && structure.Has(TownMarker) && InsidePyramid(mid);
+                float bottom=inHall?2.57f:!(structure != null && structure.Has(TownMarker)) && i==10?4.28f:
+                    !(structure != null && structure.Has(TownMarker)) && i==11?-2:2.5f;
                 if (structure != null && (i is 3 or 4 or 16 or 17))
-                    AddBakedMember("Rail bridge " + i);
+                {
+                    // A bridge nested into the sculpted sphinx is exported as part of that sphinx member.
+                    if (structure.Has("Rail bridge " + i)) AddBakedMember("Rail bridge " + i);
+                }
                 else
                 {
-                    if(i==10)
+                    if(i==10 && !(structure != null && structure.Has(TownMarker)))
                     {
                         // Each offshore timber shoe carries one post. Either shoe can be withdrawn.
                         for(int side=-1;side<=1;side+=2)
