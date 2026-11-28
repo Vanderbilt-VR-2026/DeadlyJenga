@@ -39,6 +39,7 @@ namespace DeadlyJenga.DevTools.Editor
             Check(map && map.settings.layoutPreset=="needlefrost-keep" && !map.foundation,"Physical map loaded without foundation");
             captureOrigin=map.transform.position;
             var placements=CastleLayout.Build(map.settings);
+            yield return AuditSettle(map,placements);
             var session=Object.FindFirstObjectByType<CastlePlaySession>();
             var motor=session.Survivor();var spawn=map.SafeSpawnPoint();
             bool west=false,east=false,low=true;
@@ -165,6 +166,44 @@ namespace DeadlyJenga.DevTools.Editor
             Check(eastFall > .4f, "New east shelf drops after its own support breaks");
             Check(drift<.6f && fall>.45f && walk<1.2f && bot && routes && eliminated && upperTravel>1 && carried>.5f && drop>.3f,"Intact settling, coast collapse, alternate ascent and bot smoke");
             if(verifyPeers)yield return NeedlefrostPeers.Run(map,session,Check);
+        }
+
+        // Lists the members that start inside each other and the first ones to move after load.
+        static IEnumerator AuditSettle(CastleGenerator map,System.Collections.Generic.List<CastlePlacement> placements)
+        {
+            Physics.SyncTransforms();
+            var shapes=map.Bodies.Select(b=>b.GetComponentsInChildren<Collider>().Where(c=>c.enabled && !c.isTrigger).ToArray()).ToArray();
+            int overlaps=0;
+            for(int i=0;i<shapes.Length;i++)
+            for(int j=i+1;j<shapes.Length;j++)
+            {
+                float deepest=0;
+                foreach(var a in shapes[i])
+                foreach(var b in shapes[j])
+                {
+                    if(Physics.GetIgnoreLayerCollision(a.gameObject.layer,b.gameObject.layer) || !a.bounds.Intersects(b.bounds))continue;
+                    if(Physics.ComputePenetration(a,a.transform.position,a.transform.rotation,b,b.transform.position,b.transform.rotation,out _,out float depth))
+                        deepest=Mathf.Max(deepest,depth);
+                }
+                if(deepest<.02f)continue;
+                overlaps++;
+                if(overlaps<=40)File.AppendAllText(Report,$"OVERLAP #{i} course {placements[i].Course} at {placements[i].Position} with #{j} course {placements[j].Course} at {placements[j].Position} depth {deepest:F3}\n");
+            }
+            File.AppendAllText(Report,$"Initial overlaps deeper than 2 cm: {overlaps}\n");
+            var moved=new System.Collections.Generic.HashSet<int>();
+            float start=Time.time;
+            foreach(float at in new[]{.05f,.1f,.2f,.4f,.8f,1.6f,3f})
+            {
+                while(Time.time-start<at)yield return new WaitForFixedUpdate();
+                int seats=map.Bodies.Count(b=>b.GetComponent<FixedJoint>() is var s && s && s.connectedBody);
+                File.AppendAllText(Report,$"SETTLE t={at:F2} sculpted seats {seats}\n");
+                for(int i=0;i<placements.Count;i++)
+                {
+                    float d=Vector3.Distance(map.Bodies[i].position,map.transform.TransformPoint(placements[i].Position));
+                    if(d<.1f || !moved.Add(i) || moved.Count>30)continue;
+                    File.AppendAllText(Report,$"MOVED t={at:F2} #{i} course {placements[i].Course} home {placements[i].Position} by {d:F2} velocity {map.Bodies[i].linearVelocity}\n");
+                }
+            }
         }
 
         static IEnumerator WalkKeep(CastleSurvivor motor,Vector3 start, Vector3[] goals,System.Action<bool> result,string label)
