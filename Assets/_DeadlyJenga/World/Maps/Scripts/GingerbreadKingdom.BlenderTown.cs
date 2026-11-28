@@ -81,6 +81,12 @@ namespace DeadlyJenga.CastlePrototype
                     joint.anchor = a.transform.InverseTransformPoint(at);
                     joint.connectedAnchor = b.transform.InverseTransformPoint(at);
                     joint.enableCollision = false; joint.enablePreprocessing = false;
+                    if (j.b >= 0)
+                    {
+                        // A 2 kg ornament glued to a 1 t floor jitters loose; the solver treats them as at most 10:1.
+                        joint.massScale = Mathf.Min(1, 10 * a.mass / b.mass);
+                        joint.connectedMassScale = Mathf.Min(1, 10 * b.mass / a.mass);
+                    }
                     // Blender breaks glue on impulse per substep; PhysX breaks on force.
                     // Never stronger than Blender, and weak enough for gameplay to break.
                     float lighter = j.b >= 0 ? Mathf.Min(a.mass, b.mass) : a.mass;
