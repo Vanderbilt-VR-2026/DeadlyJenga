@@ -89,6 +89,10 @@ namespace DeadlyJenga.Presentation
             main.startColor = tint;
             var emission = sparks.emission;
             emission.rateOverTime = 14;
+            // A new emitter defaults to a 1 m cone, which scattered stray sparks around the hit.
+            var shape = sparks.shape;
+            shape.shapeType = ParticleSystemShapeType.Sphere;
+            shape.radius = .012f;
             sparks.GetComponent<ParticleSystemRenderer>().sharedMaterial = glow;
             sparks.Play();
             Keep(new Residue { root=spike, born=Time.time, life=2.5f, from=point, to=contact.Position, spike=true, surface=contact, tint=tint });
@@ -328,12 +332,28 @@ namespace DeadlyJenga.Presentation
         Mesh shellMesh;
         MaterialPropertyBlock shellTint;
 
+        // Front of the noir Stock Pistol barrel in its model space (measured from the Blender export).
+        public static readonly Vector3 StockPistolMuzzle = new(0,.105f,.316f);
+
+        // Moves a shot's start onto the held model's muzzle, so flashes and trails leave the barrel tip.
+        public static Vector3 SnapToMuzzle(IMatchRuntime runtime, EquipmentActionFrame action)
+        {
+            var anchor = ShotAnchor(action.kind, action.shotgun);
+            if (runtime == null || anchor == Vector3.zero || string.IsNullOrEmpty(action.actor)) return action.position;
+            var owner = runtime.FindParticipantRoot(action.actor);
+            var model = owner ? owner.Find("Visual - " + action.kind) : null;
+            if (!model || !model.gameObject.activeInHierarchy) return action.position;
+            var socket = model.TransformPoint(anchor);
+            return (socket - action.position).sqrMagnitude < .25f ? socket : action.position;
+        }
+
         static Vector3 ShotAnchor(EquipmentKind kind,bool alternate) => kind switch
         {
             EquipmentKind.Blaster => new(0,.125f,.57f),
             EquipmentKind.SheriffHammer => new(0,.12f,.53f),
             EquipmentKind.DualRifle => new(0,.15f,alternate?.73f:1f),
             EquipmentKind.CompactSidearm => new(0,.145f,.517f),
+            EquipmentKind.StockPistol => StockPistolMuzzle,
             EquipmentKind.DualUzi => new(0,.12f,.51f),
             EquipmentKind.ChainGun => new(0,-.235f,1f),
             EquipmentKind.RocketLauncher => new(0,.205f,1.065f),

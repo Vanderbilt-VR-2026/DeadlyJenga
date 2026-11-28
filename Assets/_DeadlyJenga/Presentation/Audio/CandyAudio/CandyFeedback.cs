@@ -30,6 +30,15 @@ namespace DeadlyJenga.CandyAudio
         }
         public static void Pulse(float amount,float duration=.08f)
         {if(!instance)return;instance.impulse=Mathf.Max(instance.impulse,Mathf.Clamp01(amount));instance.until=Mathf.Max(instance.until,Time.unscaledTime+Mathf.Clamp(duration,.02f,.3f));}
+        // One controller only (for example the hand that just grabbed a block).
+        public static void Hand(bool left, float amount, float duration = .05f)
+        {
+            if (!instance || !instance.hapticsEnabled || instance.hapticStrength <= 0) return;
+            var device = InputDevices.GetDeviceAtXRNode(left ? XRNode.LeftHand : XRNode.RightHand);
+            if (device.isValid && device.TryGetHapticCapabilities(out var capabilities) && capabilities.supportsImpulse)
+                device.SendHapticImpulse(0, Mathf.Clamp01(instance.hapticStrength * amount), Mathf.Clamp(duration, .02f, .3f));
+        }
+
         internal static void MenuPress(bool left)
         {
             if (!instance || !instance.hapticsEnabled || instance.hapticStrength <= 0) return;

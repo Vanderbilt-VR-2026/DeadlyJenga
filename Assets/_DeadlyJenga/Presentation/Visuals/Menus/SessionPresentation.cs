@@ -26,6 +26,7 @@ namespace DeadlyJenga.CastlePrototype
             if (!sessionObject.GetComponent<DeadlyJenga.CandyArt.ScaffoldPresentation>()) sessionObject.AddComponent<DeadlyJenga.CandyArt.ScaffoldPresentation>();
             if (info.Player != null && !info.Player.gameObject.GetComponent<CandyStaminaHud>()) info.Player.gameObject.AddComponent<CandyStaminaHud>();
             if(info.Player!=null&&!info.Player.gameObject.GetComponent<PowerupHud>())info.Player.gameObject.AddComponent<PowerupHud>();
+            if(info.Player!=null&&!info.Player.gameObject.GetComponent<DeadlyJenga.Presentation.CandyDesktopCameraMotion>())info.Player.gameObject.AddComponent<DeadlyJenga.Presentation.CandyDesktopCameraMotion>();
             var driver = sessionObject.GetComponent<SessionPresentation>();
             if (!driver) driver = sessionObject.AddComponent<SessionPresentation>();
             driver.Init(info);

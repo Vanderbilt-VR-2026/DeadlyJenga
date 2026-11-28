@@ -61,11 +61,12 @@ Shader "Candy Tropical/Body Feedback"
             void ImpactPaint(inout half4 result, float2 p)
             {
                 float2 bearing=_Bearing.xy;
-                float2 freeBearing=float2(-1,.62);
-                bearing=dot(bearing,bearing)>.01 ? bearing : freeBearing;
-                float2 inward=-normalize(bearing);
+                float bLenSq=dot(bearing,bearing);
+                float isDirectional=step(.01,bLenSq);
+                float2 safeDir=bearing*rsqrt(max(bLenSq,1e-5));
+                float2 inward=-safeDir;
                 float2 tangent=float2(-inward.y,inward.x);
-                float2 local=p-bearing*.94;
+                float2 local=p-safeDir*.94;
                 float size=lerp(.64,1,_Impact);
                 float2 splat=float2(dot(local,tangent)*1.85,dot(local,inward)*3.1)/size;
                 float2 distorted=splat+float2(.075*sin(splat.y*19),.085*sin(splat.x*22));
@@ -83,7 +84,10 @@ Shader "Candy Tropical/Body Feedback"
                 half3 baseColor=lerp(_Ink.rgb,half3(1,.32,.66),.38);
                 half3 paint=baseColor*(.66+.48*smoothstep(0,.45,shape));
                 paint+=half3(1,.92,.85)*glint*.85;
-                Layer(result,paint,coat*smoothstep(0,.42,_Impact)*.96);
+                half dirAlpha=coat*smoothstep(0,.42,_Impact)*.96;
+                half radial=length(p*float2(1,.92));
+                half omniAlpha=smoothstep(.55,1.05,radial)*.7*smoothstep(0,.42,_Impact);
+                Layer(result,paint,lerp(omniAlpha,dirAlpha,isDirectional));
             }
             half4 Frag(Varyings i):SV_Target
             {
@@ -95,9 +99,11 @@ Shader "Candy Tropical/Body Feedback"
                 half edge=length(p*float2(1,.92));
                 if (_DeathKind<.5)
                 {
-                    half peripheral = smoothstep(.77, 1.32, edge);
-                    Layer(result, half3(.61,.27,1), peripheral * _Powerups.x * .19);
-                    Layer(result, half3(.66,1,.12), peripheral * _Powerups.y * .17);
+                    // Jump (grape) and speed (lime) tint the edges; wide enough to notice while moving.
+                    half peripheral = smoothstep(.42, 1.18, edge);
+                    half rim = smoothstep(.85, 1.3, edge);
+                    Layer(result, half3(.61,.27,1), (peripheral * .30 + rim * .22) * _Powerups.x);
+                    Layer(result, half3(.66,1,.12), (peripheral * .28 + rim * .20) * _Powerups.y);
                     half fatigue=_State.x;
                     if (fatigue>.001)
                     {

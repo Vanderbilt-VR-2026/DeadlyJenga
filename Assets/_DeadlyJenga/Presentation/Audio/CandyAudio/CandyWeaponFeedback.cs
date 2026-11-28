@@ -52,9 +52,13 @@ namespace DeadlyJenga.CandyAudio
             if(item.action==EquipmentAction.Shot&&(item.kind==EquipmentKind.DualRifle||item.kind==EquipmentKind.SheriffHammer||item.kind>EquipmentKind.PoweredArmor&&!EquipmentSpecifications.Get(item.kind).melee&&item.kind!=EquipmentKind.WristLaser&&item.endpoints.Length>0))
             {
                 if(CandyWeaponImpacts.VisibleToAnyCamera(item.position,90))
-                    trails.Fire(item.position,item.endpoints,item.shotgun,item.kind,CandyWeaponImpacts.SidearmOwnerColor(runtime,item));
+                {
+                    var start=item.kind==EquipmentKind.StockPistol?CandyArsenalEffects.SnapToMuzzle(runtime,item):item.position;
+                    trails.Fire(start,item.endpoints,item.shotgun,item.kind,CandyWeaponImpacts.SidearmOwnerColor(runtime,item));
+                }
             }
             bool global=item.action==EquipmentAction.Shot&&(item.kind==EquipmentKind.MurderSword||item.kind==EquipmentKind.SheriffHammer)&&MatchRuntime.Current?.Frame.rules.mode==GameModeKind.MurderMystery;
+            if(!global&&CandyWeaponSuite.Play(item))return;
             if(item.kind>EquipmentKind.PoweredArmor||global||item.action==EquipmentAction.Reload){CandySignatureSounds.PlayWeapon(item,global);return;}
             var engine=CandyAudioEngine.Instance;if(!engine)return;
             CandySound sound;

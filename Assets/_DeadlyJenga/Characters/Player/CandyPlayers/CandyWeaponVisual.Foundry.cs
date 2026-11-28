@@ -139,6 +139,10 @@ namespace DeadlyJenga.CandyPlayers
             if (!bakedStormAxe) return false;
             var art = Object.Instantiate(bakedStormAxe, root, false);
             art.name = "Battle-worn Storm Axe opaque";
+            // The baked FBX imports with its head toward -Z. Every axe grip and lightning point
+            // is measured with the head toward +Z (like the reviewed export), so turn it around.
+            art.transform.localRotation = Quaternion.Euler(0, 180, 0) * art.transform.localRotation;
+            art.transform.localPosition = Quaternion.Euler(0, 180, 0) * art.transform.localPosition;
             foreach (var renderer in art.GetComponentsInChildren<MeshRenderer>(true))
                 renderer.sharedMaterial = bakedStormAxeMaterial;
             return true;

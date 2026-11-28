@@ -42,6 +42,7 @@ namespace DeadlyJenga.DevTools.Editor
                 var audio=Object.FindFirstObjectByType<CandyJaguarAudio>();check(audio,"Actual jaguar audio observer is active");int consumed=audio.ConsumedActions,played=audio.PlayedActions;
                 int pickup=equipment.RegisterPickup(new RiflePickup(player.transform.position+Vector3.up*.35f));
                 check(pickup>0&&equipment.RequestPickup(pickup,true)&&equipment.RequestEquipment(true,false,false),"Real authored pickup and draw commands produce a rifle event for network transport");
+                yield return new WaitForSeconds(.55f);
                 check(equipment.RequestEquipmentAttack(new Pose(player.ViewCamera.transform.position,Quaternion.identity)),"Real accepted rifle attack shares the captured NPC action snapshot");
                 EnemyActions.Raise(enemy,EnemyActionKind.Alert);EnemyActions.Raise(enemy,EnemyActionKind.Attack);
                 enemy.GetComponent<IDamageable>().Damage(5,player.gameObject);yield return null;

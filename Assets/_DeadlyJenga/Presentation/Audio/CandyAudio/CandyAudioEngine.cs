@@ -126,7 +126,13 @@ namespace DeadlyJenga.CandyAudio
         // Repeated requests are smoothed into one bounded voice. Silence releases it.
         public void Loop(CandySound sound,Transform owner,float intensity,bool local=false,float pitch=1,float muffling=0)
         {
-            if(!bank||!owner||intensity<.005f||!FindCue(sound,out var cue)||!Audible(cue,owner.position,local))return;
+            if(FindCue(sound,out var cue))LoopCue(cue,owner,intensity,local,pitch,muffling);
+        }
+        // Same as Loop, for cues built at runtime (such as the approved weapon suite).
+        public void LoopCue(CandyAudioCue cue,Transform owner,float intensity,bool local=false,float pitch=1,float muffling=0)
+        {
+            if(!bank||!owner||intensity<.005f||cue==null||!cue.enabled||cue.variants==null||cue.variants.Length==0||!Audible(cue,owner.position,local))return;
+            var sound=cue.sound;
             int id=owner.GetInstanceID();Voice selected=null;
             foreach(var v in voices)if(v.looping&&v.cue==cue&&v.owner==id){selected=v;break;}
             if(selected==null)

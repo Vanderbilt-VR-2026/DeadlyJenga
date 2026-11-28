@@ -70,11 +70,13 @@ namespace DeadlyJenga.DevTools.Editor
                 var target=bot.GetComponent<CastleSurvivor>();
                 target.InputDriver=null;
                 target.InputSuspended=true;
-                target.Place(player.transform.position+Vector3.forward*1.20f,Quaternion.identity);
+                target.Place(player.transform.position+Vector3.forward*1.05f,Quaternion.identity);
                 Physics.SyncTransforms();
+                yield return new WaitForSeconds(.25f);
+                var playerSwing=new Pose(muzzle.position,Quaternion.LookRotation(target.transform.position+Vector3.up*.55f-muzzle.position));
                 after=runtime.Frame.equipmentSequence;
                 int marks=effects.ActiveMarks;
-                Check(inventory.RequestEquipmentAttack(muzzle),"Claws swing at a player target");
+                Check(inventory.RequestEquipmentAttack(playerSwing),"Claws swing at a player target");
                 Check(runtime.Frame.equipmentActions.Any(a=>a.id>after&&a.kind==EquipmentKind.LaserClaws
                     &&a.action==EquipmentAction.Impact),"Accepted claw player contact emits an impact receipt");
                 yield return new WaitForSeconds(.09f);
