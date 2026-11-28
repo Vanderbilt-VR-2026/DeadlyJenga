@@ -190,7 +190,9 @@ namespace DeadlyJenga.DevTools.Editor
                 for (float end = Time.time + 20; Time.time < end; waited += Time.deltaTime)
                 {
                     var p = session.Player;
-                    if (p != null && NetworkActors.Alive(p) && Vector3.Distance(p.transform.position, lake) > 5) break;
+                    // Respawned = teleported: above the water and moved sideways off the lake point (sinking does not count).
+                    if (p != null && NetworkActors.Alive(p) && p.transform.position.y > water &&
+                        Vector3.ProjectOnPlane(p.transform.position - lake, Vector3.up).magnitude > 5) break;
                     yield return null;
                 }
                 yield return Wait(.5f);
