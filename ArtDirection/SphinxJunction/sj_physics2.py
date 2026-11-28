@@ -281,7 +281,8 @@ for i, A in enumerate(cols):
         def rank(c):
             if c['fixed']: return 9
             if c['name'].startswith(('Timber trestle bent', 'Railway span', 'Great pyramid | ground entrance',
-                                     'Great pyramid | front railway', 'Great pyramid | rear railway', 'Pyramid treasury')): return 3   # lintels and supports
+                                     'Great pyramid | front railway', 'Great pyramid | rear railway', 'Pyramid treasury',
+                                     'Plaza paving', 'Plaza approach', 'Causeway span', 'Forepaw extension')): return 3   # lintels, supports, walkable decks
             if c['name'].startswith('Great pyramid | course'): return 2
             return 1
         v = min((A, B), key=lambda c: (rank(c), c['vol']))
