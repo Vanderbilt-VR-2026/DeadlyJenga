@@ -8,7 +8,7 @@ namespace DeadlyJenga.CastlePrototype
 {
     public sealed partial class SphinxJunctionMap : MonoBehaviour, IWorldQuery, ISyncedWorld, IMapFootprint, IRebuildable, ITraversalCollisionWorld
     {
-        public const string Signature = "sphinx-junction-7";
+        public const string Signature = "sphinx-junction-8";
         public Shader finishShader;
         Material finish;
         Transform built;
@@ -58,11 +58,17 @@ namespace DeadlyJenga.CastlePrototype
             bodies.Clear(); plazas.Clear();
             authoredSeams.Clear();
             bakedMembers.Clear();
+            anchored.Clear();
             structure = JunctionStructure.Load();
-            Island();
-            if (structure == null) Sphinx(); else BuildBakedSphinx();
-            Saloon(); Pyramid();
-            if (structure != null) BuildBakedLandmarkAdditions();
+            if (structure != null && structure.Has(TownMarker))
+                BuildBakedTown();
+            else
+            {
+                Island();
+                if (structure == null) Sphinx(); else BuildBakedSphinx();
+                Saloon(); Pyramid();
+                if (structure != null) BuildBakedLandmarkAdditions();
+            }
             Railway();
             Physics.SyncTransforms();
             if (structure != null) ExcludeAuthoredOverlaps();
@@ -89,7 +95,7 @@ namespace DeadlyJenga.CastlePrototype
             foreach (var rb in bodies)
             {
                 rb.GetComponent<JunctionMember>().Replica = value;
-                rb.isKinematic = value || OnRails(rb);
+                rb.isKinematic = value || OnRails(rb) || anchored.Contains(rb);
             }
         }
         void FixedUpdate()

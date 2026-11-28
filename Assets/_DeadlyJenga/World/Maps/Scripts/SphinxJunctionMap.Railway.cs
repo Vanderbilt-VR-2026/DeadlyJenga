@@ -36,12 +36,23 @@ namespace DeadlyJenga.CastlePrototype
                 float len=Vector3.Distance(a,b);
                 float yaw=Quaternion.LookRotation(b-a).eulerAngles.y;
                 chainage.Add(total); total+=len;
-                float bottom=i==10?4.28f:i==11?-2:2.5f;
+                // Bents under the pyramid stand on the Hall of the Sun Line floor (map 2.57, plaza 2.5).
+                bool inHall = structure != null && structure.Has(TownMarker) && InsidePyramid(mid);
+                float bottom=inHall?2.57f:!(structure != null && structure.Has(TownMarker)) && i==10?4.28f:
+                    !(structure != null && structure.Has(TownMarker)) && i==11?-2:2.5f;
                 if (structure != null && (i is 3 or 4 or 16 or 17))
-                    AddBakedMember("Rail bridge " + i);
+                {
+                    // A bridge nested into the sculpted sphinx is exported as part of that sphinx member. In the baked
+                    // town the bridges are braced to the bonded sphinx (fixed, like the hall trestles).
+                    if (structure.Has("Rail bridge " + i))
+                    {
+                        var bridge = AddBakedMember("Rail bridge " + i);
+                        if (structure.Has(TownMarker)) anchored.Add(bridge);
+                    }
+                }
                 else
                 {
-                    if(i==10)
+                    if(i==10 && !(structure != null && structure.Has(TownMarker)))
                     {
                         // Each offshore timber shoe carries one post. Either shoe can be withdrawn.
                         for(int side=-1;side<=1;side+=2)
@@ -66,7 +77,9 @@ namespace DeadlyJenga.CastlePrototype
                         Beam(new(s*1.22f,.65f,0),new(-s*1.22f,h-.5f,0),.31f,.37f,Red);
                     }
                     Box(0,h+.15f,0,3.85f,.3f,i<2?2.6f:1.6f,Dark);
-                    End(bottom<0);
+                    var bent=End(bottom<0);
+                    // braced to the Hall of the Sun Line, or to the masonry the Blender test found it buried in
+                    if(inHall || structure != null && structure.Has("@braced Timber trestle bent "+i)) anchored.Add(bent);
                 }
                 Begin("Railway span "+i,mid.x,mid.y-.155f,mid.z,yaw);
                 var forward=(b-a).normalized;
@@ -81,7 +94,13 @@ namespace DeadlyJenga.CastlePrototype
                 for(int s=-1;s<=1;s+=2) Box(s*.59f,.32f,0,.105f,.18f,len,Iron,false);
                 for(int j=-1;j<=1;j+=2) Box(1.94f,.55f,j*len*.38f,.13f,1.1f,.13f,Wood);
                 Box(1.94f,1.04f,0,.13f,.14f,len,Wood);
-                seats.Add(unit.transform.localPosition); track.Add(End());
+                seats.Add(unit.transform.localPosition);
+                var span=End();
+                track.Add(span);
+                // spans over the sphinx ride on its braced bridges; spans inside the pyramid on the hall's braced trestles
+                if (structure != null && structure.Has(TownMarker) && (i is 3 or 4 or 16 or 17 || InsidePyramid(mid) ||
+                                                                       structure.Has("@braced Railway span "+i)))
+                    anchored.Add(span);
             }
             stationDistance=chainage[21]; mileage=stationDistance; dwell=3;
             for(int i=0;i<3;i++)
@@ -138,11 +157,14 @@ namespace DeadlyJenga.CastlePrototype
                 Beam(new(0,.75f,end*2.75f),new(0,7.3f,-end*2.75f),.27f,.27f,Dark);
             }
             var platformBent=End();
+            if (structure != null && structure.Has(TownMarker)) anchored.Add(platformBent);   // braced into the baked depot
             Begin("Depot boarding platform",-16.35f,10.68f,12.2f);
             Box(0,0,0,3.2f,.44f,7.15f,Wood);
             for(int j=-4;j<=4;j++) Box(0,.231f,j*.81f,3.2f,.05f,.79f,Honey,false);
             foreach(int end in new[]{-1,1}) Round(0,.255f,end*2.75f,.14f,.035f,.14f,Iron);
-            Fasten(End(),platformBent);
+            var platform=End();
+            Fasten(platform,platformBent);
+            if (structure != null && structure.Has(TownMarker)) anchored.Add(platform);
             Stairs("Depot boarding stair",-8.74f,2.5f,14.38f,2.3f,8.4f,12,-90);
         }
         int Section(float d)

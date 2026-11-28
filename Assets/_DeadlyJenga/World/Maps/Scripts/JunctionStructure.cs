@@ -25,13 +25,21 @@ namespace DeadlyJenga.CastlePrototype
 
         internal sealed class Part
         {
+            // Kind byte: 0 drawn only, 1 drawn and solid, 2 solid but not drawn (a designed bearing collider),
+            // 3 like 2 but kept concave (only for the kinematic foundation).
             internal readonly bool Solid;
+            internal readonly bool Hidden;
+            internal readonly bool Concave;
             internal readonly Vector3[] Points;
             internal readonly Triangle[] Triangles;
 
             internal Part(BinaryReader reader)
             {
-                Solid = reader.ReadBoolean();
+                byte kind = reader.ReadByte();
+                if (kind > 3) throw new InvalidDataException("Unknown Sphinx Junction part kind.");
+                Solid = kind != 0;
+                Hidden = kind >= 2;
+                Concave = kind == 3;
                 int points = reader.ReadUInt16();
                 int triangles = reader.ReadUInt16();
                 if (points < 3 || triangles < 1)
@@ -89,10 +97,29 @@ namespace DeadlyJenga.CastlePrototype
             }
         }
 
+        internal bool Has(string name) => members.ContainsKey(name);
+
         internal void AddTo(string name, JunctionModel model)
         {
             if (!members.TryGetValue(name, out var parts)) return;
             foreach (var part in parts) model.AddBakedPart(part);
+        }
+
+        // Bounds of the colliding parts only (decorations hung on a member do not count).
+        internal Bounds SolidBoundsOf(string name)
+        {
+            Bounds bounds = default;
+            bool any = false;
+            foreach (var part in members[name])
+            {
+                if (!part.Solid) continue;
+                foreach (var point in part.Points)
+                {
+                    if (!any) { bounds = new Bounds(point, Vector3.zero); any = true; }
+                    else bounds.Encapsulate(point);
+                }
+            }
+            return any ? bounds : BoundsOf(name);
         }
 
         internal Bounds BoundsOf(string name)

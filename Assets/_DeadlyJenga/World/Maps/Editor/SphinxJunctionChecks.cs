@@ -52,7 +52,7 @@ namespace DeadlyJenga.CastlePrototype.Editor
                 if(!SessionState.GetBool(Key,false))return;
                 if(state==PlayModeStateChange.EnteredPlayMode)
                 {
-                    phase=0;failed=false;deadline=EditorApplication.timeSinceStartup+420;
+                    phase=0;failed=false;town58=false;deadline=EditorApplication.timeSinceStartup+540;
                     EditorApplication.update+=Tick;
                 }
                 if(state==PlayModeStateChange.EnteredEditMode)
@@ -108,8 +108,18 @@ namespace DeadlyJenga.CastlePrototype.Editor
                     Check(Vector3.Distance(engine.position,engineStart)>1,"Train moved after depot dwell");
                     Log($"Body count {map.Blocks.Count}, awake {map.Blocks.Count(b=>!b.IsSleeping())}, colliders {map.GetComponentsInChildren<Collider>().Length}, spawn {map.SafeSpawnPoint()}");
                     Check(passengerCarried,"Placed rider remained on a moving coach");
-                    CheckCorridor("Saloon entrance",new(-23,2.78f,-7.2f),new(-23,2.78f,-3));
+                    bool town=map.SaveLayout()=="sphinx-junction-8";
+                    if(!town) CheckCorridor("Saloon entrance",new(-23,2.78f,-7.2f),new(-23,2.78f,-3));
                     CheckCorridor("Under the sphinx",new(0,2.5f,-6.4f),new(0,2.5f,4));
+                    if(town)
+                    {
+                        int stones=map.Blocks.Count(b=>b.name.StartsWith("Great pyramid | course",StringComparison.Ordinal));
+                        Log("Pyramid stones "+stones+", joints "+map.GetComponentsInChildren<FixedJoint>().Length);
+                        Check(stones>300,"Full-height pyramid is built from individual stone members");
+                        Check(map.Blocks.Any(b=>b.name=="General store frame") && map.Blocks.Any(b=>b.name=="Undertaker frame"),
+                            "West street and south annex buildings are present");
+                        CheckCorridor("Pyramid ground door into the hall",Pyr(-2,-16,2.57f),Pyr(-2,-11.4f,2.57f));   // the station platform stands beyond
+                    }
                     if (map.SaveLayout() == "sphinx-junction-7")
                     {
                         Check(map.Blocks.Count(b => b.name.StartsWith("Sphinx torso bay", StringComparison.Ordinal)) == 12,
@@ -126,8 +136,8 @@ namespace DeadlyJenga.CastlePrototype.Editor
                     GameEvents.Eliminated+=OnEliminated;
                     if(bot && bot.GetComponent<IPlayableCharacter>() is IPlayableCharacter testBot)
                         testBot.Place(map.transform.TransformPoint(0,-1.42f,-25),Quaternion.identity);
-                    rail=Body("Railway span 10");railStart=rail.position;
-                    chest=Body("Sphinx chest lintel");chestStart=chest.position;
+                    rail=Body(town?"Railway span 14":"Railway span 10");railStart=rail.position;
+                    chest=Body(town?"Sphinx right forepaw":"Sphinx chest lintel");chestStart=chest.position;
                     passedPortal=false;phase=8;began=Time.fixedTime;
                 }
                 else if(phase==8)
@@ -141,19 +151,28 @@ namespace DeadlyJenga.CastlePrototype.Editor
                     bool returned=passedPortal && engine.isKinematic && Vector3.Distance(engine.position,engineStart)<1.2f;
                     if(!returned && elapsed<78)return;
                     Check(passedPortal,"Intact locomotive crossed the pyramid bore");
+                    if(!returned)
+                    {
+                        // where the train stopped, and which spans have shifted from their seats
+                        var shifted=map.Blocks.Select((b,i)=>(b,i)).Where(v=>v.b.name.StartsWith("Railway span",StringComparison.Ordinal))
+                            .Select(v=>(v.b.name,d:Vector3.Distance(v.b.position,initial[v.i]),up:v.b.transform.up.y))
+                            .Where(v=>v.d>.15f||v.up<.98f).Select(v=>v.name+" moved "+v.d.ToString("F2")+" up "+v.up.ToString("F3"));
+                        Log("  engine stopped at "+map.transform.InverseTransformPoint(engine.position).ToString("F1")+" after "+elapsed.ToString("F0")+" s; shifted spans: "+string.Join(", ",shifted));
+                    }
                     Check(returned,"Intact train completed the loop back to the depot");
-                    StartPull("Timber trestle bent 10");
-                    pull.Hold(grip+Vector3.forward*9);phase=2;began=Time.fixedTime;
+                    bool newTown=map.SaveLayout()=="sphinx-junction-8";
+                    StartPull(newTown?"Timber trestle bent 14":"Timber trestle bent 10");
+                    pull.Hold(grip+(newTown?map.transform.TransformDirection(Vector3.forward):Vector3.forward)*9);phase=2;began=Time.fixedTime;
                 }
                 else if(phase==2)
                 {
-                    if(elapsed>.55f){Shot("06-trestle-pull",new(41,8,2),new(35,5,18),51);Log("East post displacement "+Vector3.Distance(grip,pull.Body.worldCenterOfMass));pull.Release();phase++;began=Time.fixedTime;}
+                    if(elapsed>.55f){if(map.SaveLayout()=="sphinx-junction-8")ShotAt("06-trestle-pull",pull.Body,new(-12,6,-10),51);else Shot("06-trestle-pull",new(41,8,2),new(35,5,18),51);Log("East post displacement "+Vector3.Distance(grip,pull.Body.worldCenterOfMass));pull.Release();phase++;began=Time.fixedTime;}
                 }
                 else if(phase==3 && elapsed>2)
                 {
-                    Shot("07-trestle-loss",new(41,8,2),new(35,5,18),51);
+                    if(map.SaveLayout()=="sphinx-junction-8")ShotAt("07-trestle-loss",rail,new(-12,6,-10),51);else Shot("07-trestle-loss",new(41,8,2),new(35,5,18),51);
                     Check(Vector3.Distance(railStart,rail.position)>.6f,"Trestle deck lost bearing");
-                    StartPull("Sphinx shoulder bearing 1");phase++;began=Time.fixedTime;
+                    StartPull(map.SaveLayout()=="sphinx-junction-8"?"Sphinx right forepaw":"Sphinx shoulder bearing 1");phase++;began=Time.fixedTime;
                 }
                 else if(phase==4)
                 {
@@ -163,11 +182,64 @@ namespace DeadlyJenga.CastlePrototype.Editor
                 else if(phase==5 && elapsed>2)
                 {
                     Check(sandEliminated,"Quicksand eliminated the exposed survivor bot");
-                    Check(Vector3.Distance(chest.position,chestStart)>.35f,"Sphinx chest responded to bearing pull");
+                    if(map.SaveLayout()=="sphinx-junction-8")   // the carved sphinx is bonded masonry; a hand pull is not meant to break it
+                        Log("Sphinx forepaw displacement under the hand pull "+Vector3.Distance(chest.position,chestStart).ToString("F2"));
+                    else Check(Vector3.Distance(chest.position,chestStart)>.35f,"Sphinx chest responded to bearing pull");
                     Shot("08-sphinx-loss",new(7,7,-15),new(0,8,0),58);
                     began=Time.fixedTime;phase++;return;
                 }
-                else if(phase==6 && elapsed>58)
+                else if(phase==6 && !town58 && map.SaveLayout()=="sphinx-junction-8" && elapsed>2)
+                {
+                    // Saloon: haul the upper floor (storey with its wraparound balcony) off eastward, toward the open market side.
+                    saloonUpper=Body("Saloon timber storey 1");saloonUpperStart=saloonUpper.position;
+                    saloonLower=Body("Saloon timber storey 0");saloonLowerStart=saloonLower.position;
+                    StartPull("Saloon timber storey 1");
+                    pullTarget=grip+map.transform.TransformDirection(Vector3.right)*15;   // past the far edge of the floor below
+                    phase=20;began=Time.fixedTime;
+                }
+                else if(phase==20)
+                {
+                    pull.Hold(pullTarget);
+                    if(elapsed>5f){pull.Release();phase++;began=Time.fixedTime;}
+                }
+                else if(phase==21 && elapsed>5)
+                {
+                    ShotAt("09-saloon-pull",saloonUpper,new(10,6,-16),60);
+                    float drop=saloonUpperStart.y-saloonUpper.position.y;
+                    float apart=Vector3.Distance(saloonUpper.position-saloonUpperStart,saloonLower.position-saloonLowerStart);
+                    Log("Saloon upper floor drop "+drop.ToString("F2")+", moved "+Vector3.Distance(saloonUpper.position,saloonUpperStart).ToString("F2")+", separated from the ground floor by "+apart.ToString("F2"));
+                    Check(apart>3,"Saloon upper floor separated from the ground floor under the haul");
+                    // Pyramid: the mortared shell is meant to shrug off a light shower; the game's Planet Killer meteor
+                    // (default 45 m) brings it down. First a share of a default shower, then one Planet Killer strike.
+                    stoneStart=map.Blocks.Where(b=>b.name.StartsWith("Great pyramid | course",StringComparison.Ordinal)).ToDictionary(b=>b,b=>b.position);
+                    strikes=0;phase=22;began=Time.fixedTime;
+                }
+                else if(phase==22)
+                {
+                    // one strike every quarter second, the same push BasicDisaster.MeteorImpact gives each member
+                    while(strikes<48 && elapsed>strikes*.125f){MeteorStrike(strikes);strikes++;}
+                    if(strikes==48 && elapsed>6.5f)
+                    {
+                        int showered=stoneStart.Count(p=>Vector3.Distance(p.Key.position,p.Value)>.5f);
+                        Log("Pyramid stones moved over 0.5 m by the meteor shower: "+showered+" of "+stoneStart.Count);
+                        PlanetKiller();strikes++;
+                    }
+                    if(strikes>48 && elapsed>7){phase++;began=Time.fixedTime;}
+                }
+                else if(phase==23 && elapsed>6)
+                {
+                    ShotAt("10-pyramid-planet-killer",stoneStart.Keys.OrderByDescending(b=>b.position.y).First(),new(-20,8,-34),60);
+                    int fallen=stoneStart.Count(p=>Vector3.Distance(p.Key.position,p.Value)>.5f);
+                    Log("Pyramid stones moved over 0.5 m after the Planet Killer: "+fallen+" of "+stoneStart.Count);
+                    Check(fallen>=100,"Planet Killer meteor brought the pyramid shell down progressively");
+                    // Respawn after structural damage: the spawn point still has footing above the quicksand.
+                    var spawn=map.SafeSpawnPoint();
+                    bool footing=Physics.Raycast(spawn+Vector3.up*.3f,Vector3.down,out _,1.5f,1<<Layers.Block,QueryTriggerInteraction.Ignore);
+                    Services.Session.Player.Place(spawn,Quaternion.identity);
+                    Check(footing && spawn.y>map.WaterHeight(spawn)+.5f,"Safe respawn point has footing after damage");
+                    began=Time.fixedTime;phase=6;town58=true;
+                }
+                else if(phase==6 && (map.SaveLayout()!="sphinx-junction-8" || town58) && elapsed>(town58?40:58))
                 {
                     engineStart=engine.position; began=Time.fixedTime;phase++;
                 }
@@ -196,6 +268,11 @@ namespace DeadlyJenga.CastlePrototype.Editor
                     floor.normal.y<.72f || Physics.CheckCapsule(floor.point+Vector3.up*.38f,
                     floor.point+Vector3.up*1.46f,.29f,mask,QueryTriggerInteraction.Ignore))
                 {
+                    // say what is in the way, so a failure names its cause
+                    bool hasFloor=Physics.Raycast(feet+Vector3.up*.34f,Vector3.down,out var f2,.78f,mask,QueryTriggerInteraction.Ignore);
+                    string blockers=hasFloor?string.Join(", ",Physics.OverlapCapsule(f2.point+Vector3.up*.38f,f2.point+Vector3.up*1.46f,.29f,mask,QueryTriggerInteraction.Ignore)
+                        .Select(c=>(c.attachedRigidbody?c.attachedRigidbody.name:c.name)).Distinct().Take(5)):"";
+                    Log("  floor "+(hasFloor?f2.collider.attachedRigidbody?.name+" y="+f2.point.y.ToString("F2")+" normal "+f2.normal.y.ToString("F2"):"none")+"; in the way: "+blockers);
                     Check(false,name+" lacks footing or standing clearance at "+feet);
                     return;
                 }
@@ -203,12 +280,74 @@ namespace DeadlyJenga.CastlePrototype.Editor
             Check(true,name+" has continuous footing and standing clearance");
         }
         static Rigidbody Body(string name)=>map.Blocks.First(b=>b.name==name);
+        static Rigidbody saloonUpper;
+        static Vector3 saloonUpperStart,pullTarget;
+        static System.Collections.Generic.Dictionary<Rigidbody,Vector3> stoneStart;
+        static bool town58;
+        static int strikes;
+        static Rigidbody saloonLower;
+        static Vector3 saloonLowerStart;
+        // BasicDisaster.MeteorImpact for a PlanetKillerMeteor: radius 0.8 x 45 m, force 28 m/s, landing high on the east face.
+        static void PlanetKiller()
+        {
+            float zB=28, h=18-.43f*(zB-2.7f);
+            var point=map.transform.TransformPoint(Pyr(h,0,(zB+.16f)/1.142f));
+            var velocity=map.transform.TransformDirection(PyrDirection(Vector3.left)+Vector3.down).normalized;
+            const float radius=36, force=28;
+            var hit=new System.Collections.Generic.HashSet<JunctionMember>();
+            foreach(var c in Physics.OverlapSphere(point,radius,1<<Layers.Block,QueryTriggerInteraction.Ignore))
+            {
+                var member=c.GetComponentInParent<JunctionMember>();
+                if(!member||!hit.Add(member))continue;
+                var delta=c.bounds.center-point;float falloff=1-Mathf.Clamp01(delta.magnitude/radius);
+                member.Push((velocity*.7f+delta.normalized*.6f+Vector3.up*.25f)*force*falloff,map.gameObject);
+            }
+            Log("Planet Killer strike at "+map.transform.InverseTransformPoint(point).ToString("F1")+" pushed "+hit.Count+" members");
+        }
+        static void MeteorStrike(int k)
+        {
+            // strikes spread over the four upper faces, as in the Blender meteor test (Blender metres on the faces)
+            var rng=new System.Random(7+k);
+            float zB=16+(float)rng.NextDouble()*18, h=18-.43f*(zB-2.7f), u=((float)rng.NextDouble()*1.2f-.6f)*h;
+            int side=k%4;
+            var local=side==0?new Vector3(u,0,-h):side==1?new Vector3(h,0,u):side==2?new Vector3(u,0,h):new Vector3(-h,0,u);
+            var inward=side==0?Vector3.forward:side==1?Vector3.left:side==2?Vector3.back:Vector3.right;
+            var point=map.transform.TransformPoint(Pyr(local.x,local.z,(zB+.16f)/1.142f));
+            var velocity=map.transform.TransformDirection(PyrDirection(inward)+Vector3.down).normalized;
+            const float radius=2.4f, force=12;   // MeteorImpact: max(2, 0.8 * 3 m) and the shower's default force
+            var hit=new System.Collections.Generic.HashSet<JunctionMember>();
+            foreach(var c in Physics.OverlapSphere(point,radius,1<<Layers.Block,QueryTriggerInteraction.Ignore))
+            {
+                var member=c.GetComponentInParent<JunctionMember>();
+                if(!member||!hit.Add(member))continue;
+                var delta=c.bounds.center-point;float falloff=1-Mathf.Clamp01(delta.magnitude/radius);
+                member.Push((velocity*.7f+delta.normalized*.6f+Vector3.up*.25f)*force*falloff,map.gameObject);
+            }
+            Log("Meteor strike "+k+" at "+map.transform.InverseTransformPoint(point).ToString("F1")+" pushed "+hit.Count+" members");
+        }
+        // A point given in the pyramid's Blender layout (metres from its centre at 36, 16.5, turned -40 degrees)
+        // at map height y. The Blender reference frame stretches map x by 1.103 and height by 1.142.
+        static Vector3 Pyr(float x,float z,float y)
+        {
+            float c=Mathf.Cos(-40*Mathf.Deg2Rad), s=Mathf.Sin(-40*Mathf.Deg2Rad);
+            return new Vector3((36+c*x-s*z)/1.103f,y,16.5f+s*x+c*z);
+        }
+        static Vector3 PyrDirection(Vector3 local)
+        {
+            float c=Mathf.Cos(-40*Mathf.Deg2Rad), s=Mathf.Sin(-40*Mathf.Deg2Rad);
+            return new Vector3((c*local.x-s*local.z)/1.103f,local.y/1.142f,s*local.x+c*local.z);
+        }
+        static void ShotAt(string name,Rigidbody body,Vector3 offset,float fov)
+        {
+            var target=map.transform.InverseTransformPoint(body.position);
+            Shot(name,target+offset,target,fov);
+        }
         static void StartPull(string name)
         {
             var body=Body(name);pull=body.GetComponent<JunctionMember>();grip=body.worldCenterOfMass;
             Check(pull.TryStartGrab(map.gameObject,grip),"Grabbed "+name);
         }
-        static void Log(string line)=>File.AppendAllText(ProjectPath.Report("SphinxJunction.txt"),line+"\n");
+        static void Log(string line){File.AppendAllText(ProjectPath.Report("SphinxJunction.txt"),line+"\n");Debug.Log(line);}   // the runner counts PASS/FAIL in the Unity log
         static void Check(bool pass,string what){Log((pass?"PASS ":"FAIL ")+what);failed|=!pass;}
         static void Finish()
         {
