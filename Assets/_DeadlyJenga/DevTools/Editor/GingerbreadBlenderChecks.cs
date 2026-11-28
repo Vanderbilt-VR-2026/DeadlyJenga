@@ -225,7 +225,7 @@ namespace DeadlyJenga.DevTools.Editor
             var survivor = Services.Session.Player?.gameObject.GetComponent<CastleSurvivor>();
             if (!survivor) { Check(false, label + ": survivor present"); return; }
             // Tall box faces that start near the street and face the open town.
-            var faces = candidates.SelectMany(p => p.shapes.OfType<BoxCollider>().Select(c => (p, c)))
+            var faces = candidates.SelectMany(p => p.Shapes.OfType<BoxCollider>().Select(c => (p, c)))
                 .Where(x => x.c.bounds.min.y < .8f && x.c.bounds.size.y > 2.2f)
                 .OrderBy(x => Vector3.Distance(x.c.bounds.center, map.SafeSpawnPoint())).Take(12).ToList();
             float best = 0; string where = "none";

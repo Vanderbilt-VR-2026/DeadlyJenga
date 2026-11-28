@@ -9,6 +9,7 @@ namespace DeadlyJenga.CastlePrototype
     {
         internal Rigidbody rigid;
         internal readonly List<Collider> shapes = new();
+        public IReadOnlyList<Collider> Shapes => shapes;
         internal Transform art;
         Vector3 grabOffset, target;
         bool held;
