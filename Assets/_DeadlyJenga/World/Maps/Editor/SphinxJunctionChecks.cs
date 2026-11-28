@@ -118,7 +118,7 @@ namespace DeadlyJenga.CastlePrototype.Editor
                         Check(stones>300,"Full-height pyramid is built from individual stone members");
                         Check(map.Blocks.Any(b=>b.name=="General store frame") && map.Blocks.Any(b=>b.name=="Undertaker frame"),
                             "West street and south annex buildings are present");
-                        CheckCorridor("Pyramid ground door into the hall",Pyr(-2,-16,2.57f),Pyr(-2,-8,2.57f));
+                        CheckCorridor("Pyramid ground door into the hall",Pyr(-2,-16,2.57f),Pyr(-2,-11.4f,2.57f));   // the station platform stands beyond
                     }
                     if (map.SaveLayout() == "sphinx-junction-7")
                     {

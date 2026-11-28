@@ -84,6 +84,7 @@ namespace DeadlyJenga.CastlePrototype
             foreach (var name in structure.Names)
             {
                 if (name.StartsWith("Rail bridge ", System.StringComparison.Ordinal)) continue;   // placed by Railway()
+                if (name.StartsWith("@", System.StringComparison.Ordinal)) continue;              // export notes, not members
                 var bounds = structure.SolidBoundsOf(name);
                 Begin(name, bounds.center.x, bounds.center.y, bounds.center.z);
                 // The podium and hall floor (exact concave colliders) and every member driven into the sand bed

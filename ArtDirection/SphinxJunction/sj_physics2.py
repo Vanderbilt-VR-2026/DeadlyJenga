@@ -346,6 +346,8 @@ for a, b in STUCK:
     if keep_name(rb_) > keep_name(ra):
         ra, rb_ = rb_, ra
     up[rb_] = ra
+# rail pieces buried in sculpture or masonry (merged here) are braced to it in Unity, which builds the railway
+RAIL_BRACED = {n for n in members if n.startswith(RAIL_CODE) and root(n) != n and not root(n).startswith(RAIL_CODE)}
 merged = 0
 for n in list(members):
     r = root(n)
@@ -364,7 +366,7 @@ if os.environ.get('SJ_EXPORT'):
     sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
     import sj_unity_export
     FIXED = {n for n in members if is_fixed(n, members[n])}
-    sj_unity_export.export(os.environ['SJ_EXPORT'], members, sources, FR, dg, islands, RAIL_PART_IDS, FIXED)
+    sj_unity_export.export(os.environ['SJ_EXPORT'], members, sources, FR, dg, islands, RAIL_PART_IDS, FIXED, RAIL_BRACED)
     sys.exit(0)
 
 # ---------------------------------------------------------------- bodies

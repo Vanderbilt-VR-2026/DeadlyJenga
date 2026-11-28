@@ -78,7 +78,8 @@ namespace DeadlyJenga.CastlePrototype
                     }
                     Box(0,h+.15f,0,3.85f,.3f,i<2?2.6f:1.6f,Dark);
                     var bent=End(bottom<0);
-                    if(inHall) anchored.Add(bent);   // braced to the Hall of the Sun Line, like its floor
+                    // braced to the Hall of the Sun Line, or to the masonry the Blender test found it buried in
+                    if(inHall || structure != null && structure.Has("@braced Timber trestle bent "+i)) anchored.Add(bent);
                 }
                 Begin("Railway span "+i,mid.x,mid.y-.155f,mid.z,yaw);
                 var forward=(b-a).normalized;
@@ -97,7 +98,8 @@ namespace DeadlyJenga.CastlePrototype
                 var span=End();
                 track.Add(span);
                 // spans over the sphinx ride on its braced bridges
-                if (structure != null && structure.Has(TownMarker) && i is 3 or 4 or 16 or 17) anchored.Add(span);
+                if (structure != null && structure.Has(TownMarker) && (i is 3 or 4 or 16 or 17 || structure.Has("@braced Railway span "+i)))
+                    anchored.Add(span);
             }
             stationDistance=chainage[21]; mileage=stationDistance; dwell=3;
             for(int i=0;i<3;i++)

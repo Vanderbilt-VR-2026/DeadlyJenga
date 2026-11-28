@@ -15,7 +15,7 @@ def srgb(x):
     return round(max(0, min(1, (1.055 * x ** (1 / 2.4) - .055) if x > .0031308 else x * 12.92)) * 255)
 
 
-def export(path, members, sources, frame_matrix, dg, islands, rail_parts=frozenset(), fixed=frozenset()):
+def export(path, members, sources, frame_matrix, dg, islands, rail_parts=frozenset(), fixed=frozenset(), braced=frozenset()):
     inv = frame_matrix.inverted()
 
     def enc(v):
@@ -135,6 +135,10 @@ def export(path, members, sources, frame_matrix, dg, islands, rail_parts=frozens
                 f.write(struct.pack('<HHHBBB', a, b, c, *col))
             yield 1
 
+    # '@braced <rail piece>' entries tell the map which code-built rail pieces to brace (one tiny hidden part each)
+    for r in braced:
+        owners['@braced ' + r] = {'col': [], 'vis': [([(0.0, -50.0, 0.0), (0.01, -50.0, 0.0), (0.0, -50.0, 0.01)], [(0, 1, 2, (0, 0, 0))])]}
+    print('EXPORT braced rail', sorted(braced), flush=True)
     names = sorted(owners)
     with open(path, 'wb') as f:
         def string(s):
