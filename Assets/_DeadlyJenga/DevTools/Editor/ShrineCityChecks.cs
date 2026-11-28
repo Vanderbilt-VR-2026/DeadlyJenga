@@ -125,12 +125,16 @@ namespace DeadlyJenga.DevTools.Editor
 
             // 2. Stand untouched
             var start = map.Bodies.Select(b => b.position).ToArray();
+            int standJoints = map.GetComponentsInChildren<FixedJoint>().Length;
             Capture(map, "ShrineCity-Stand-Start.png");
             yield return Wait(8);
             var moved = map.Bodies.Select((b, i) => b ? Vector3.Distance(b.position, start[i]) : 999f).ToArray();
             int fell = moved.Count(m => m > 1), shifted = moved.Count(m => m > .1f);
             int worst = Array.IndexOf(moved, moved.Max());
             Line($"STAND bodies={moved.Length} moved>0.1m={shifted} fell>1m={fell} worst={moved[worst]:F2}m ({ShrineCityLayout.Building(worst)} / {ShrineCityLayout.BodyId(worst)})");
+            Line($"STAND joints snapped while standing: {standJoints - map.GetComponentsInChildren<FixedJoint>().Length}");
+            foreach (int i in Enumerable.Range(0, moved.Length).OrderByDescending(i => moved[i]).Take(10))
+                Line($"  moved {moved[i]:F2} m  {ShrineCityLayout.Building(i)} / {ShrineCityLayout.BodyId(i)}  y={start[i].y - map.transform.position.y:F1}");
             Capture(map, "ShrineCity-Stand-8s.png");
             Check(fell == 0, "The town stands untouched for 8 s (no body falls more than 1 m)");
 

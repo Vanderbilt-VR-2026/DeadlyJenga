@@ -142,8 +142,10 @@ namespace DeadlyJenga.CastlePrototype
                 if (!a || !b || a.isKinematic || b.isKinematic) continue;
                 var joint = a.gameObject.AddComponent<FixedJoint>();
                 joint.connectedBody = b;
+                // A load hanging off a long body twists the joint more than it pulls; scale the torque limit by the lever.
+                float lever = 1 + Vector3.Distance(a.worldCenterOfMass, b.worldCenterOfMass);
                 joint.breakForce = j.f;
-                joint.breakTorque = j.f;
+                joint.breakTorque = j.f * lever;
                 joint.enablePreprocessing = false;
             }
         }
