@@ -46,8 +46,11 @@ namespace DeadlyJenga.CastlePrototype
         }
 
         public static int BodyCount => Load().bodies.Length;
-        // Multiplies every authored joint break force (tuning hook; the Blender-tested value is 1).
-        public static float JointScale = 1;
+        // Multiplies every authored joint break force. The Blender joints (1) hold ~300x carried weight, too strong for
+        // any in-game disaster; Unity sweeps against the match earthquake (8 m/s2, 2 Hz) chose 0.2: the town stands and
+        // the quake breaks it progressively.
+        public const float DefaultJointScale = .2f;
+        public static float JointScale = DefaultJointScale;
         public static string Building(int index) => Load().bodies[index].building;
         public static string BodyId(int index) => Load().bodies[index].id;
 

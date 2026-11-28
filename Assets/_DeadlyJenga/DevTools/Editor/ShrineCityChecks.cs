@@ -132,11 +132,12 @@ namespace DeadlyJenga.DevTools.Editor
             int joints = map.GetComponentsInChildren<FixedJoint>().Length;
             Check(joints > 1000, $"Timber joints built ({joints})");
 
-            // 2. Stand untouched
+            // 2. Stand untouched (20 s at the tuned joint strength)
+            Line($"JOINT SCALE {ShrineCityLayout.JointScale}");
             var start = map.Bodies.Select(b => b.position).ToArray();
             int standJoints = map.GetComponentsInChildren<FixedJoint>().Length;
             Capture(map, "ShrineCity-Stand-Start.png");
-            yield return Wait(8);
+            yield return Wait(20);
             var moved = map.Bodies.Select((b, i) => b ? Vector3.Distance(b.position, start[i]) : 999f).ToArray();
             int fell = moved.Count(m => m > 1), shifted = moved.Count(m => m > .1f);
             int worst = Array.IndexOf(moved, moved.Max());
@@ -144,24 +145,24 @@ namespace DeadlyJenga.DevTools.Editor
             Line($"STAND joints snapped while standing: {standJoints - map.GetComponentsInChildren<FixedJoint>().Length}");
             foreach (int i in Enumerable.Range(0, moved.Length).OrderByDescending(i => moved[i]).Take(10))
                 Line($"  moved {moved[i]:F2} m  {ShrineCityLayout.Building(i)} / {ShrineCityLayout.BodyId(i)}  y={start[i].y - map.transform.position.y:F1}");
-            Capture(map, "ShrineCity-Stand-8s.png");
-            Check(fell == 0, "The town stands untouched for 8 s (no body falls more than 1 m)");
+            Capture(map, "ShrineCity-Stand-20s.png");
+            Check(fell == 0, "The town stands untouched for 20 s (no body falls more than 1 m)");
 
-            // 3. Gameplay force: the game's own earthquake disaster (same settings as the Breakwater Village check)
+            // 3. Gameplay force: the game's own earthquake disaster at its in-match settings
             var quakeStart = map.Bodies.Select(b => b.position).ToArray();
             int quakeJoints = map.GetComponentsInChildren<FixedJoint>().Length;
             var quake = BreakwaterVillageChecks.MakeHazard("Earthquake", new Dictionary<string, float>
-                { { "force", 14 }, { "frequency", 1.35f }, { "vertical", .12f }, { "warning", 0 }, { "duration", 12 } });
+                { { "force", 8 }, { "frequency", 2 }, { "vertical", .25f }, { "warning", 0 }, { "duration", 30 } });
             quake.Begin();
             Check(quake.Active, "The earthquake disaster begins on Shrine City through normal map validation");
-            yield return Wait(12.5f);
+            yield return Wait(30.5f);
             quake.End(); Object.Destroy(quake.gameObject);
             yield return Wait(3);
             int quakeFell = map.Bodies.Select((b, i) => b && Vector3.Distance(b.position, quakeStart[i]) > 1 ? 1 : 0).Sum();
             int quakeBroken = quakeJoints - map.GetComponentsInChildren<FixedJoint>().Length;
-            Line($"EARTHQUAKE 12 s fell>1m={quakeFell} jointsBroken={quakeBroken}");
+            Line($"EARTHQUAKE match settings (8 m/s2, 2 Hz, vertical .25) 30 s fell>1m={quakeFell} jointsBroken={quakeBroken}");
             Capture(map, "ShrineCity-Earthquake.png");
-            Check(quakeFell >= 5 && quakeBroken >= 10, "The earthquake disaster breaks the town (5+ bodies fall, 10+ joints snap)");
+            Check(quakeFell >= 5 && quakeBroken >= 10, "The in-match earthquake breaks the town (5+ bodies fall, 10+ joints snap)");
 
             // Fresh town for the scripted collapse
             yield return LoadMap();
@@ -280,7 +281,7 @@ namespace DeadlyJenga.DevTools.Editor
                 Line($"SWEEP scale={scale} stand fell={standFell} snapped={standBroken} | match quake (8 m/s2, 2 Hz, 30 s) fell={quakeFell} snapped={quakeBroken} peakSpeed={peak:F2} m/s");
                 Capture(map, $"ShrineCity-Sweep-{scale}-{Time.frameCount}.png");
             }
-            ShrineCityLayout.JointScale = 1;
+            ShrineCityLayout.JointScale = ShrineCityLayout.DefaultJointScale;
         }
 
         static Bounds BodyBounds(Rigidbody body)
