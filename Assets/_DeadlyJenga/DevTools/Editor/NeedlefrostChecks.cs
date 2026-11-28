@@ -143,10 +143,11 @@ namespace DeadlyJenga.DevTools.Editor
             File.AppendAllText(Report,$"Motor ended at {motor.transform.position}, target {driver.target}, status {motor.ActionStatus}\n");
             motor.InputDriver=null;motor.externallyDriven=false;
             var upper=map.Bodies[placements.FindIndex(p=>Mathf.Abs(p.Position.x-8.55f)<.01f && p.Size.x>8 && p.Size.y==1)];
-            var oldUpper=upper.position;upper.GetComponent<IPushable>().Push(Vector3.forward*16,null);
-            yield return new WaitForFixedUpdate();
-            File.AppendAllText(Report,$"Upper bridge speed after push {upper.linearVelocity} mass {upper.mass:F0}\n");
-            yield return new WaitForSeconds(.8f);
+            // The grand keep's floor now flanks the deck on both sides, so a shove along the deck only wedges it.
+            // Knock out the arch it stands on instead; the deck then drops away.
+            var upperArch=map.Bodies[placements.FindIndex(p=>Mathf.Abs(p.Position.x-8.55f)<.01f && p.Size.x>8 && p.Size.y>5)];
+            var oldUpper=upper.position;upperArch.GetComponent<IPushable>().Push(Vector3.forward*16,null);
+            yield return new WaitForSeconds(1.2f);
             float upperTravel=Vector3.Distance(upper.position,oldUpper);
             LogNeighbours(map,placements,"upper bridge",upper);
             yield return WalkKeep(motor,new Vector3(16,3.1f,-8.8f),new[]{new Vector3(24.3f,6,-8.8f),new Vector3(24.3f,6,-5)},result=>routes &= result,"east ascent after upper crossing loss");
@@ -169,8 +170,10 @@ namespace DeadlyJenga.DevTools.Editor
             Check(sculptures == 7 && seated == 7, "Seven sculpted Blender members retain individual dynamic bodies and breakable bearing seats");
             Check(outerRoute, "Survivor reaches the raised outer shelf from the new east terrace");
             Check(eastFall > .4f, "New east shelf drops after its own support breaks");
-            Check(drift<.6f && fall>.45f && walk<1.2f && bot && routes && eliminated && upperTravel>1 && carried>.5f && drop>.3f,"Intact settling, coast collapse, alternate ascent and bot smoke");
+            Check(drift<.6f && fall>.45f && walk<1.2f && bot && routes && eliminated && upperTravel>1,"Intact settling, coast collapse, alternate ascent and bot smoke");
             if(verifyPeers)yield return NeedlefrostPeers.Run(map,session,Check);
+            // A flying-hand grip fixture, reported on its own so it does not hide the map's physics results.
+            Check(carried>.5f && drop>.3f,"Production hand pulls the loose coast cornice outward and drops it");
         }
 
         // Lists the members that start inside each other and the first ones to move after load.
