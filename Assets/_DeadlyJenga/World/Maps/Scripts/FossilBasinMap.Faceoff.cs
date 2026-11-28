@@ -84,6 +84,9 @@ namespace DeadlyJenga.CastlePrototype
                 pad.transform.SetParent(structure, false);
                 pad.transform.localPosition = new Vector3(baseBlock.p.x, padTop - .20f, baseBlock.p.z);
                 pad.AddComponent<BoxCollider>().size = new Vector3(baseBlock.size.x * 1.35f, .4f, baseBlock.size.z * 1.35f);
+                // A kinematic body lets the lowest pier unit be bolted to its bearing.
+                var padBody = pad.AddComponent<Rigidbody>();
+                padBody.isKinematic = true;
 
                 FossilMember lower = null;
                 for (int start = 0; start < post.blocks.Length; start += 3)
@@ -109,6 +112,7 @@ namespace DeadlyJenga.CastlePrototype
                         }
                     });
                     if (lower) Socket(body, lower, new Vector3(core.x, bottom, core.z), 7200);
+                    else Socket(body.Body, padBody, new Vector3(core.x, bottom, core.z), 7200);
                     lower = body;
                 }
                 heads.Add(lower);
@@ -299,11 +303,18 @@ namespace DeadlyJenga.CastlePrototype
             for (int i = 1; i < 8; i++) Join(Get("vertebra and ribs " + i), Get("vertebra and ribs " + (i-1)));
             var first = Get("vertebra and ribs 0");
             var last = Get("vertebra and ribs 7");
-            var tail = first;
-            for (int i = 0; parts.TryGetValue(kind + " tail centrum " + i, out var next); i++)
+            // The tail hangs far out with nothing under it. Joints near the hip carry the
+            // weight of every centrum beyond them, and each centrum is also braced to the
+            // one two back so the chain does not sag like a rope.
+            var centra = new List<FossilMember> { first };
+            while (parts.TryGetValue(kind + " tail centrum " + (centra.Count - 1), out var next)) centra.Add(next);
+            for (int i = 1; i < centra.Count; i++)
             {
-                Join(next, tail, 4300);
-                tail = next;
+                float outboard = centra.Count - i;
+                Join(centra[i], centra[i - 1], 9600 + 2800 * outboard);
+                if (i >= 2) Join(centra[i], centra[i - 2], 6000 + 1400 * outboard);
+                if (i >= 3) Join(centra[i], centra[i - 3], 6000 + 1400 * outboard);
+                centra[i].Body.solverIterations = 64;
             }
             var neck = Get("cervical vertebrae");
             var skull = Get(kind == "Rex" ? "skull" : "perforated skull");

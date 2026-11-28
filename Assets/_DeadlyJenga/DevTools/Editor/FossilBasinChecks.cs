@@ -22,8 +22,10 @@ namespace DeadlyJenga.DevTools.Editor
         static Vector3[] initial;
         static TestDummy dummy;
         static FossilMember pulled;
+        static FossilMember[] outerPosts;
+        static int pullIndex;
         static Camera camera;
-        static Vector3 grab,footBefore;
+        static Vector3 grab,footBefore,towerBefore,brontoBefore;
         static Rigidbody westRefuge;
         static Vector3 westBefore;
         static Rigidbody foot;
@@ -59,6 +61,7 @@ namespace DeadlyJenga.DevTools.Editor
         }
         static FossilBasinChecks(){EditorApplication.playModeStateChanged+=State;}
         public static void Run()=>RunFaceoff();
+        public static void RunFull()=>Begin(false,false);
         public static void RunFaceoff()=>Begin(false, true);
         public static void RunScenery()=>Begin(true);
         static void Begin(bool sceneryOnly, bool faceoff = false)
@@ -108,8 +111,14 @@ namespace DeadlyJenga.DevTools.Editor
                 Check(bodies.Count>500,"expanded Blender member count "+bodies.Count);
                 float worst=bodies.Select((body,i)=>Vector3.Distance(body.position,initial[i])).Max();
                 Check(worst<.7f,"unloaded maximum travel "+worst);
+                foreach(var item in bodies.Select((b,i)=>(b,travel:Vector3.Distance(b.position,initial[i]))).OrderByDescending(x=>x.travel).Take(8))
+                    report+=item.b.name+" travel "+item.travel+" at "+item.b.position+"\n";
+                report+="Joints remaining "+map.GetComponentsInChildren<Joint>().Length+"\n";
+                // Renders, bot spawn and the pull get their own time budget after the settle.
+                deadline=EditorApplication.timeSinceStartup+120;
                 var spawn=map.SafeSpawnPoint();
-                Check(Physics.Raycast(spawn+Vector3.up*.25f,Vector3.down,out var bearing,.7f,1<<Layers.Block)&&bearing.normal.y>.86f,
+                // A foot-sized probe: deck centres can sit on the thin seam between two stones.
+                Check(Physics.SphereCast(spawn+Vector3.up*.4f,.15f,Vector3.down,out var bearing,.7f,1<<Layers.Block)&&bearing.normal.y>.86f,
                     "survivor spawn has flat bearing at "+spawn);
                 var skull=bodies.First(body=>body.name=="Rex skull");
                 Check(skull.GetComponentInChildren<MeshFilter>().sharedMesh.vertexCount>500,"imported Rex skull mesh");
@@ -131,11 +140,28 @@ namespace DeadlyJenga.DevTools.Editor
                 bots.Running=true;Check(bots.SpawnOne(),"survivor bot spawn");
                 Shot("21-faceoff-wide",new Vector3(-4,25,-84),new Vector3(-4,12,1),37);
                 Shot("22-faceoff-camp",new Vector3(1,2.38f,-20),new Vector3(-9,10,-6),64);
+                Shot("24-expansion-tower-east",new Vector3(72,20,-34),new Vector3(48,14,-4),56);
+                Shot("25-expansion-bronto-west",new Vector3(-28,22,-26),new Vector3(-53,10,7),56);
+                float maxDrift=map.Blocks.Select((b,i)=>Vector3.Distance(b.position,initial[i])).Max();
+                Check(maxDrift<.7f,"unloaded maximum body travel "+maxDrift);
+                foreach(string expName in new[]{"Shark skull and upper teeth","Pterodactyl torso","Pterodactyl cradle","Brontosaurus skull","Egg nest"})
+                {
+                    var expBody=bodies.FirstOrDefault(b=>b.name==expName);
+                    Check(expBody,"expansion member present: "+expName);
+                    var mr=expBody?expBody.GetComponentInChildren<MeshRenderer>():null;
+                    var mf=expBody?expBody.GetComponentInChildren<MeshFilter>():null;
+                    Check(mf&&mf.sharedMesh&&mf.sharedMesh.vertexCount>10&&mr&&mr.sharedMaterial&&mr.sharedMaterial.shader.isSupported,"expansion mesh and shader valid: "+expName);
+                }
                 var probe=GameObject.CreatePrimitive(PrimitiveType.Sphere);
                 probe.transform.position=new Vector3(35,.8f,-2);
                 probe.transform.localScale=Vector3.one*.3f;
                 probe.AddComponent<Rigidbody>();dummy=probe.AddComponent<TestDummy>();
-                pulled=bodies.Where(b=>b.name.StartsWith("B5")&&b.name.Contains(" pier ")).OrderByDescending(b=>b.position.x).ThenByDescending(b=>b.position.y).First().GetComponent<FossilMember>();
+                // Knock out the top unit of all four posts under the Triceratops rear foot.
+                outerPosts=bodies.Where(b=>b.name.StartsWith("B5")&&b.name.Contains(" pier "))
+                    .GroupBy(b=>b.name.Substring(0,b.name.LastIndexOf('/')))
+                    .Select(g=>g.OrderByDescending(b=>b.position.y).First())
+                    .OrderByDescending(b=>b.position.x).Take(4).Select(b=>b.GetComponent<FossilMember>()).ToArray();
+                pullIndex=0;pulled=outerPosts[0];
                 foot=bodies.Where(b=>b.name.StartsWith("Triceratops tarsals")).OrderByDescending(b=>b.position.x).First();
                 footBefore=foot.position;
                 westRefuge=bodies.First(b=>b.name.StartsWith("A1")&&b.name.Contains(" deck "));
@@ -148,7 +174,13 @@ namespace DeadlyJenga.DevTools.Editor
                 pulled.Hold(grab+Vector3.right*Mathf.Min(6,dt*5));
                 if(dt<1.5f)return;
                 pulled.Release();
-                Check(Vector3.Distance(grab,pulled.Body.worldCenterOfMass)>.6f,"pull moves outer bearing");
+                Check(Vector3.Distance(grab,pulled.Body.worldCenterOfMass)>.6f,"pull moves outer bearing "+pulled.name);
+                if(++pullIndex<outerPosts.Length)
+                {
+                    pulled=outerPosts[pullIndex];grab=pulled.Body.worldCenterOfMass;
+                    Check(pulled.TryStartGrab(camera.gameObject,grab),"grab next bearing "+pulled.name);
+                    clock=Time.fixedTime;return;
+                }
                 clock=Time.fixedTime;phase=3;return;
             }
             if(phase==3&&dt>2)
@@ -157,6 +189,30 @@ namespace DeadlyJenga.DevTools.Editor
                 Check(footBefore.y-foot.position.y>.22f,"Triceratops foot drops after bearing pull: "+(footBefore.y-foot.position.y));
                 Check(westRefuge.gameObject.activeSelf&&Vector3.Distance(westRefuge.position,westBefore)<.3f,"west apron survives the east bearing pull");
                 Shot("23-faceoff-after-pull",new Vector3(-4,25,-84),new Vector3(-4,12,1),37);
+                var eggNest=map.Blocks.First(b=>b.name=="Egg nest");
+                var brontoSkull=map.Blocks.First(b=>b.name=="Brontosaurus skull");
+                towerBefore=eggNest.position;brontoBefore=brontoSkull.position;
+                foreach(string targetName in new[]{"L1 column +0/-8 unit 0","L1 column +0/+8 unit 0","Brontosaurus back 1","Brontosaurus right foreleg","Brontosaurus left foreleg"})
+                {
+                    var tb=map.Blocks.FirstOrDefault(b=>b.name==targetName);
+                    Check(tb,"collapse target present: "+targetName);
+                    if(tb)tb.GetComponent<FossilMember>().Push(Vector3.right*24,camera.gameObject);
+                }
+                clock=Time.fixedTime;phase=4;return;
+            }
+            if(phase==4&&dt>2.5f)
+            {
+                Shot("26-expansion-tower-collapse",new Vector3(72,20,-34),new Vector3(48,12,-4),56);
+                Shot("27-expansion-bronto-collapse",new Vector3(-28,22,-26),new Vector3(-53,8,7),56);
+                var eggNest=map.Blocks.First(b=>b.name=="Egg nest");
+                var brontoSkull=map.Blocks.First(b=>b.name=="Brontosaurus skull");
+                float towerTravel=Vector3.Distance(towerBefore,eggNest.position);
+                float brontoTravel=Vector3.Distance(brontoBefore,brontoSkull.position);
+                Check(towerTravel>.5f||!eggNest.gameObject.activeSelf,"expansion exhibit tower collapses on column push: "+towerTravel);
+                Check(brontoTravel>.5f||!brontoSkull.gameObject.activeSelf,"expansion brontosaurus collapses on push: "+brontoTravel);
+                map.Rebuild();
+                var respawn=map.SafeSpawnPoint();
+                Check(Physics.SphereCast(respawn+Vector3.up*.4f,.2f,Vector3.down,out var rhit,1f,1<<Layers.Block)&&rhit.normal.y>.86f,"post-rebuild respawn has flat bearing at "+respawn);
                 End();
             }
         }
@@ -165,7 +221,7 @@ namespace DeadlyJenga.DevTools.Editor
         {
             try
             {
-                if(EditorApplication.timeSinceStartup>deadline)throw new TimeoutException("phase "+phase);
+                if(EditorApplication.timeSinceStartup>deadline)throw new TimeoutException("phase "+phase+" after "+(Time.fixedTime-clock)+" s of physics");
                 if(Services.Session?.SurvivorBots==null)return;
                 if(phase==0)
                 {
@@ -176,6 +232,8 @@ namespace DeadlyJenga.DevTools.Editor
                     report+="Rigid members "+initial.Length+", bearing shapes "+map.GetComponentsInChildren<BoxCollider>().Length+", joints "+map.GetComponentsInChildren<Joint>().Length+"\n";
                     camera=new GameObject("Fossil Basin review camera").AddComponent<Camera>();
                     camera.enabled=false;camera.farClipPlane=400;camera.nearClipPlane=.05f;
+                    // Building the map can take minutes on a busy test PC; time the settle from here.
+                    deadline=EditorApplication.timeSinceStartup+240;
                     clock=Time.fixedTime;phase++;return;
                 }
                 float dt=Time.fixedTime-clock;
@@ -228,6 +286,16 @@ namespace DeadlyJenga.DevTools.Editor
                     foreach(var item in map.Blocks.Select((b,i)=>(b,travel:Vector3.Distance(b.position,initial[i]))).OrderByDescending(x=>x.travel).Take(8))
                         report+=item.b.name+" travel "+item.travel+" at "+item.b.position+"\n";
                     Wide("02-settled");
+                    Shot("24-expansion-tower-east",new Vector3(72,20,-34),new Vector3(48,14,-4),56);
+                    Shot("25-expansion-bronto-west",new Vector3(-28,22,-26),new Vector3(-53,10,7),56);
+                    foreach(string expName in new[]{"Shark skull and upper teeth","Pterodactyl torso","Pterodactyl cradle","Brontosaurus skull","Egg nest"})
+                    {
+                        var expBody=map.Blocks.FirstOrDefault(b=>b.name==expName);
+                        Check(expBody,"expansion member present: "+expName);
+                        var mr=expBody?expBody.GetComponentInChildren<MeshRenderer>():null;
+                        var mf=expBody?expBody.GetComponentInChildren<MeshFilter>():null;
+                        Check(mf&&mf.sharedMesh&&mf.sharedMesh.vertexCount>10&&mr&&mr.sharedMaterial&&mr.sharedMaterial.shader.isSupported,"expansion mesh and shader valid: "+expName);
+                    }
                     Shot("03-apron-eye",new Vector3(1,2.1f,-12.2f),new Vector3(-4,7,0),70);
                     Shot("04-rib-eye",new Vector3(-11,12.5f,11),new Vector3(2,12,3),70);
                     var spawn=map.SafeSpawnPoint();
@@ -309,6 +377,30 @@ namespace DeadlyJenga.DevTools.Editor
                     Check(footBefore.y-foot.position.y>.3f,"foot drop after loss of bearings "+(footBefore.y-foot.position.y));
                     Check(westRefuge.gameObject.activeSelf && Vector3.Distance(westRefuge.position,westBefore)<.30f,
                         "independent western route survives eastern pier loss");
+                    var eggNest=map.Blocks.First(b=>b.name=="Egg nest");
+                    var brontoSkull=map.Blocks.First(b=>b.name=="Brontosaurus skull");
+                    towerBefore=eggNest.position;brontoBefore=brontoSkull.position;
+                    foreach(string targetName in new[]{"L1 column +0/-8 unit 0","L1 column +0/+8 unit 0","Brontosaurus back 1","Brontosaurus right foreleg","Brontosaurus left foreleg"})
+                    {
+                        var tb=map.Blocks.FirstOrDefault(b=>b.name==targetName);
+                        Check(tb,"collapse target present: "+targetName);
+                        if(tb)tb.GetComponent<FossilMember>().Push(Vector3.right*24,camera.gameObject);
+                    }
+                    clock=Time.fixedTime;phase=7;return;
+                }
+                if(phase==7&&dt>2.5f)
+                {
+                    Shot("26-expansion-tower-collapse",new Vector3(72,20,-34),new Vector3(48,12,-4),56);
+                    Shot("27-expansion-bronto-collapse",new Vector3(-28,22,-26),new Vector3(-53,8,7),56);
+                    var eggNest=map.Blocks.First(b=>b.name=="Egg nest");
+                    var brontoSkull=map.Blocks.First(b=>b.name=="Brontosaurus skull");
+                    float towerTravel=Vector3.Distance(towerBefore,eggNest.position);
+                    float brontoTravel=Vector3.Distance(brontoBefore,brontoSkull.position);
+                    Check(towerTravel>.5f||!eggNest.gameObject.activeSelf,"expansion exhibit tower collapses on column push: "+towerTravel);
+                    Check(brontoTravel>.5f||!brontoSkull.gameObject.activeSelf,"expansion brontosaurus collapses on push: "+brontoTravel);
+                    map.Rebuild();
+                    var respawn=map.SafeSpawnPoint();
+                    Check(Physics.SphereCast(respawn+Vector3.up*.4f,.2f,Vector3.down,out var rhit,1f,1<<Layers.Block)&&rhit.normal.y>.86f,"post-rebuild respawn has flat bearing at "+respawn);
                     File.WriteAllText(Folder+"/desktop.txt",report);
                     peer=FossilBasinPeer.Receive(map,(CastlePlaySession)Services.Session,Check);
                     deadline=EditorApplication.timeSinceStartup+130;phase=6;return;
