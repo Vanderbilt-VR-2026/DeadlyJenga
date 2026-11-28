@@ -202,8 +202,14 @@ if os.environ.get('SJ_DIAG'):
 # bents). Where the authored meshes sink more than 2.1 cm into each other, shrink the smaller loose member's
 # collider toward each piece's centre until the pair only touches. Pieces resting on top of others keep their
 # contact. (Blender's disable-collision constraints proved unreliable at this scale, so no pair is ignored.)
+def in_hall(parts):
+    V = [v for p in parts for v in p[0]]
+    c = PINV @ ((Vector([min(v[i] for v in V) for i in range(3)]) + Vector([max(v[i] for v in V) for i in range(3)])) / 2)
+    return abs(c.x) < 15.5 and abs(c.y) < 15.5
 def is_fixed(n, parts):
-    return n == 'Pyramid podium and hall floor' or n.startswith('Forepaw extension paving') or min(v.z for p in parts for v in p[0]) < 0.3
+    # trestle bents inside the pyramid are braced to the Hall of the Sun Line, like its floor
+    return (n == 'Pyramid podium and hall floor' or n.startswith('Forepaw extension paving') or
+            min(v.z for p in parts for v in p[0]) < 0.3 or (n.startswith('Timber trestle bent') and in_hall(parts)))
 def shrink_parts(parts, sh, sz=0.0):
     # sh shrinks sideways only, so a shrunk member keeps bearing on what is under it; sz shrinks height
     out = []
@@ -270,9 +276,10 @@ for i, A in enumerate(cols):
             rested += 1
             if dbg: print('PHYS clash rest', A['name'][:40], '|', B['name'][:40])
             continue
-        # who gives way: fixed pieces first, then ordinary members, then stone blocks, and rail supports last
+        # who gives way: ordinary members first, then stone blocks, then rail supports and lintels; the fixed
+        # foundation never does (shrinking a big concave piece would drag its walls into its own doorways)
         def rank(c):
-            if c['fixed']: return 0
+            if c['fixed']: return 9
             if c['name'].startswith(('Timber trestle bent', 'Railway span', 'Great pyramid | ground entrance',
                                      'Great pyramid | front railway', 'Great pyramid | rear railway', 'Pyramid treasury')): return 3   # lintels and supports
             if c['name'].startswith('Great pyramid | course'): return 2
@@ -292,7 +299,7 @@ for i, A in enumerate(cols):
                     return True
             return False
         other = B if v is A else A
-        if not (give_way(v) or (rank(other) < 3 and give_way(other))):
+        if not (give_way(v) or (not other['fixed'] and rank(other) < 3 and give_way(other))):
             stuck += 1; STUCK.append((A['name'], B['name']))
         shrunk_n += 1
 for (n, k), d in TRIM.items():
@@ -392,7 +399,7 @@ for name, parts in members.items():
     lo = Vector([min(v[i] for v in V) for i in range(3)]); hi = Vector([max(v[i] for v in V) for i in range(3)])
     vol = sum(math.prod(max(0.02, max(v[i] for v in p[0]) - min(v[i] for v in p[0])) for i in range(3)) for p in parts) * 0.45   # JunctionModel.AddBakedPart: bounds volume * .45 per solid part
     mass = min(115.0, max(4.0, vol * 2.0))
-    fixed = name == 'Pyramid podium and hall floor' or name.startswith('Forepaw extension paving')
+    fixed = name == 'Pyramid podium and hall floor' or name.startswith('Forepaw extension paving') or         (name.startswith('Timber trestle bent') and in_hall(parts))
     pile = (lo.z < 0.3) and not fixed
     # Unity piles are FixedJoints to the world that only fail when pulled; Blender's solver lets loaded
     # pile joints creep, so a pile is a fixed body here. None of the designed pulls grabs a pile.

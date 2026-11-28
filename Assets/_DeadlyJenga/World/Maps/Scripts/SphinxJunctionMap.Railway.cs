@@ -72,7 +72,8 @@ namespace DeadlyJenga.CastlePrototype
                         Beam(new(s*1.22f,.65f,0),new(-s*1.22f,h-.5f,0),.31f,.37f,Red);
                     }
                     Box(0,h+.15f,0,3.85f,.3f,i<2?2.6f:1.6f,Dark);
-                    End(bottom<0);
+                    var bent=End(bottom<0);
+                    if(inHall) anchored.Add(bent);   // braced to the Hall of the Sun Line, like its floor
                 }
                 Begin("Railway span "+i,mid.x,mid.y-.155f,mid.z,yaw);
                 var forward=(b-a).normalized;

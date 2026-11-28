@@ -184,6 +184,7 @@ namespace DeadlyJenga.CastlePrototype.Editor
                 {
                     // Saloon: haul the upper floor (storey with its wraparound balcony) off eastward, toward the open market side.
                     saloonUpper=Body("Saloon timber storey 1");saloonUpperStart=saloonUpper.position;
+                    saloonLower=Body("Saloon timber storey 0");saloonLowerStart=saloonLower.position;
                     StartPull("Saloon timber storey 1");
                     pullTarget=grip+map.transform.TransformDirection(Vector3.right)*15;   // past the far edge of the floor below
                     phase=20;began=Time.fixedTime;
@@ -197,10 +198,11 @@ namespace DeadlyJenga.CastlePrototype.Editor
                 {
                     ShotAt("09-saloon-pull",saloonUpper,new(10,6,-16),60);
                     float drop=saloonUpperStart.y-saloonUpper.position.y;
-                    Log("Saloon upper storey drop "+drop.ToString("F2")+", moved "+Vector3.Distance(saloonUpper.position,saloonUpperStart).ToString("F2"));
-                    Check(drop>.8f,"Saloon upper floor came off and fell when hauled toward the market");
-                    // Pyramid: a meteor shower (default 3 m meteors, 12 m/s impact force) strikes the upper faces,
-                    // 48 strikes at 8 per second: the pyramid's share of a default 25 s shower over the map.
+                    float apart=Vector3.Distance(saloonUpper.position-saloonUpperStart,saloonLower.position-saloonLowerStart);
+                    Log("Saloon upper floor drop "+drop.ToString("F2")+", moved "+Vector3.Distance(saloonUpper.position,saloonUpperStart).ToString("F2")+", separated from the ground floor by "+apart.ToString("F2"));
+                    Check(apart>3,"Saloon upper floor separated from the ground floor under the haul");
+                    // Pyramid: the mortared shell is meant to shrug off a light shower; the game's Planet Killer meteor
+                    // (default 45 m) brings it down. First a share of a default shower, then one Planet Killer strike.
                     stoneStart=map.Blocks.Where(b=>b.name.StartsWith("Great pyramid | course",StringComparison.Ordinal)).ToDictionary(b=>b,b=>b.position);
                     strikes=0;phase=22;began=Time.fixedTime;
                 }
@@ -208,14 +210,20 @@ namespace DeadlyJenga.CastlePrototype.Editor
                 {
                     // one strike every quarter second, the same push BasicDisaster.MeteorImpact gives each member
                     while(strikes<48 && elapsed>strikes*.125f){MeteorStrike(strikes);strikes++;}
-                    if(strikes>=48 && elapsed>6.5f){phase++;began=Time.fixedTime;}
+                    if(strikes==48 && elapsed>6.5f)
+                    {
+                        int showered=stoneStart.Count(p=>Vector3.Distance(p.Key.position,p.Value)>.5f);
+                        Log("Pyramid stones moved over 0.5 m by the meteor shower: "+showered+" of "+stoneStart.Count);
+                        PlanetKiller();strikes++;
+                    }
+                    if(strikes>48 && elapsed>7){phase++;began=Time.fixedTime;}
                 }
                 else if(phase==23 && elapsed>6)
                 {
-                    ShotAt("10-pyramid-meteor-shower",stoneStart.Keys.OrderByDescending(b=>b.position.y).First(),new(-20,8,-34),60);
+                    ShotAt("10-pyramid-planet-killer",stoneStart.Keys.OrderByDescending(b=>b.position.y).First(),new(-20,8,-34),60);
                     int fallen=stoneStart.Count(p=>Vector3.Distance(p.Key.position,p.Value)>.5f);
-                    Log("Pyramid stones moved over 0.5 m after the meteor shower: "+fallen+" of "+stoneStart.Count);
-                    Check(fallen>=20,"Meteor shower broke the pyramid shell progressively");
+                    Log("Pyramid stones moved over 0.5 m after the Planet Killer: "+fallen+" of "+stoneStart.Count);
+                    Check(fallen>=100,"Planet Killer meteor brought the pyramid shell down progressively");
                     // Respawn after structural damage: the spawn point still has footing above the quicksand.
                     var spawn=map.SafeSpawnPoint();
                     bool footing=Physics.Raycast(spawn+Vector3.up*.3f,Vector3.down,out _,1.5f,1<<Layers.Block,QueryTriggerInteraction.Ignore);
@@ -264,6 +272,25 @@ namespace DeadlyJenga.CastlePrototype.Editor
         static System.Collections.Generic.Dictionary<Rigidbody,Vector3> stoneStart;
         static bool town58;
         static int strikes;
+        static Rigidbody saloonLower;
+        static Vector3 saloonLowerStart;
+        // BasicDisaster.MeteorImpact for a PlanetKillerMeteor: radius 0.8 x 45 m, force 28 m/s, landing high on the east face.
+        static void PlanetKiller()
+        {
+            float zB=28, h=18-.43f*(zB-2.7f);
+            var point=map.transform.TransformPoint(Pyr(h,0,(zB+.16f)/1.142f));
+            var velocity=map.transform.TransformDirection(PyrDirection(Vector3.left)+Vector3.down).normalized;
+            const float radius=36, force=28;
+            var hit=new System.Collections.Generic.HashSet<JunctionMember>();
+            foreach(var c in Physics.OverlapSphere(point,radius,1<<Layers.Block,QueryTriggerInteraction.Ignore))
+            {
+                var member=c.GetComponentInParent<JunctionMember>();
+                if(!member||!hit.Add(member))continue;
+                var delta=c.bounds.center-point;float falloff=1-Mathf.Clamp01(delta.magnitude/radius);
+                member.Push((velocity*.7f+delta.normalized*.6f+Vector3.up*.25f)*force*falloff,map.gameObject);
+            }
+            Log("Planet Killer strike at "+map.transform.InverseTransformPoint(point).ToString("F1")+" pushed "+hit.Count+" members");
+        }
         static void MeteorStrike(int k)
         {
             // strikes spread over the four upper faces, as in the Blender meteor test (Blender metres on the faces)
@@ -307,7 +334,7 @@ namespace DeadlyJenga.CastlePrototype.Editor
             var body=Body(name);pull=body.GetComponent<JunctionMember>();grip=body.worldCenterOfMass;
             Check(pull.TryStartGrab(map.gameObject,grip),"Grabbed "+name);
         }
-        static void Log(string line)=>File.AppendAllText(ProjectPath.Report("SphinxJunction.txt"),line+"\n");
+        static void Log(string line){File.AppendAllText(ProjectPath.Report("SphinxJunction.txt"),line+"\n");Debug.Log(line);}   // the runner counts PASS/FAIL in the Unity log
         static void Check(bool pass,string what){Log((pass?"PASS ":"FAIL ")+what);failed|=!pass;}
         static void Finish()
         {

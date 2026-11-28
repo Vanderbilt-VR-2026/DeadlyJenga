@@ -158,6 +158,7 @@ namespace DeadlyJenga.CastlePrototype
             // exact collider pairs at the authored pose, then restore their contacts
             // when the pieces pull apart. Players still collide with every member.
             var colliders = built.GetComponentsInChildren<Collider>();
+            bool town = structure.Has(TownMarker);
             var boundsByCollider = new Bounds[colliders.Length];
             var bodyByCollider = new Rigidbody[colliders.Length];
             for (int i = 0; i < colliders.Length; i++)
@@ -177,6 +178,8 @@ namespace DeadlyJenga.CastlePrototype
                     if (firstBody == secondBody || !bounds.Intersects(boundsByCollider[j]) ||
                         !bakedMembers.Contains(firstBody) && !bakedMembers.Contains(secondBody)) continue;
                     if (!Penetration(first, second, out float depth) || depth < .021f) continue;
+                    // A piece resting on top of another keeps its bearing contact, whatever the overlap.
+                    if (town && (bounds.min.y > boundsByCollider[j].max.y - .14f || boundsByCollider[j].min.y > bounds.max.y - .14f)) continue;
                     Physics.IgnoreCollision(first, second);
                     authoredSeams.Add((first, second));
                 }
