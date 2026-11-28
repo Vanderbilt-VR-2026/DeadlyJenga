@@ -154,8 +154,7 @@ namespace DeadlyJenga.DevTools.Editor
             float upperTravel=Vector3.Distance(upper.position,oldUpper);
             float archTravel=Vector3.Distance(upperArch.position,oldArch);
             bool crossingLost=archTravel>1 && upperTravel>.5f;
-            File.AppendAllText(Report,$"Upper crossing arch moved {archTravel:F2} m, deck {upperTravel:F2} m
-");
+            File.AppendAllText(Report,$"Upper crossing arch moved {archTravel:F2} m, deck {upperTravel:F2} m\n");
             LogNeighbours(map,placements,"upper bridge",upper);
             yield return WalkKeep(motor,new Vector3(16,3.1f,-8.8f),new[]{new Vector3(24.3f,6,-8.8f),new Vector3(24.3f,6,-5)},result=>routes &= result,"east ascent after upper crossing loss");
             bool eliminated=false;
