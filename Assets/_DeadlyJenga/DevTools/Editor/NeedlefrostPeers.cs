@@ -70,7 +70,11 @@ namespace DeadlyJenga.DevTools.Editor
                 guest.AddCallbacks(callbacks);
                 var coast=map.Bodies.First(b=>Vector3.Distance(map.transform.InverseTransformPoint(b.position),new Vector3(-26,2.35f,-19))<.4f);
                 var start=coast.position;
-                coast.GetComponent<IPushable>().Push(Vector3.left*12,null);
+                // The slab is boxed in by the cornice pier and its neighbouring courts, so break its own
+                // pier socket (the solo coast collapse) and let the slab fall.
+                var coastPier=map.Bodies.First(b=>Vector3.Distance(map.transform.InverseTransformPoint(b.position),new Vector3(-26,-.65f,-19))<.4f);
+                coastPier.GetComponent<IPushable>().Push(Vector3.left*44,null);
+                coast.WakeUp();
                 yield return new WaitForSeconds(.9f);
                 float coastTravel=Vector3.Distance(coast.position,start);
                 MayhemMarinaChecks.LogNeighbours(map,CastleLayout.Build(map.settings),"peer coast",coast);
