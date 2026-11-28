@@ -24,9 +24,9 @@ namespace DeadlyJenga.CastlePrototype
             ("GingerbreadPhysicsBigBen", Vector3.zero),
         };
         const float SettleSeconds = 2.5f;
-        const float LoadMargin = 3f;
+        const float LoadMargin = 5f;
         // Lightly loaded glue still holds this many times the lighter piece's weight.
-        const float GlueStrength = 15f;
+        const float GlueStrength = 25f;
 
         [Serializable] sealed class BoxSpec { public Vector3 p, size, forward, up; }
         [Serializable] sealed class BodySpec { public string name; public float mass; public Vector3 p; public BoxSpec[] boxes; public int[] hulls, visuals; }
@@ -115,11 +115,11 @@ namespace DeadlyJenga.CastlePrototype
 
         void FinishBlenderSettle()
         {
-            // Joints cannot break while the freshly built town settles. During the last second
-            // each joint records the load it carries; it then breaks at a few times that load
+            // Joints cannot break while the freshly built town settles. From half a second in
+            // each joint records the load it carries; it then breaks at five times that load
             // (at least a light floor), so the town holds at rest but gameplay can break it.
             if (!builtBlender || blenderSettledAt <= 0) return;
-            if (Time.time >= blenderSettledAt - 1f)
+            if (Time.time >= blenderSettledAt - SettleSeconds + .5f)
                 foreach (var g in blenderGlue)
                     if (g.joint)
                     {
