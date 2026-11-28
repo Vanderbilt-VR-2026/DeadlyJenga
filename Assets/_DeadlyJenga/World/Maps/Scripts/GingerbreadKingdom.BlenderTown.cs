@@ -67,11 +67,15 @@ namespace DeadlyJenga.CastlePrototype
                 // The castle and Big Ben were tested in Blender on a flat floor at street level.
                 if (!first) Foundation(part, layout.bodyMin, layout.bodyMax);
                 var shapes = ReadBlenderMeshes(meshAsset.bytes);
-                var built = new List<GingerbreadPiece>();
-                foreach (var spec in layout.bodies) built.Add(BlenderBody(part, spec, shapes));
+                var host = OrnamentHosts(layout);
+                var built = new GingerbreadPiece[layout.bodies.Length];
+                for (int i = 0; i < host.Length; i++)
+                    if (host[i] == i) built[i] = BlenderBody(part, layout.bodies, i, host, shapes);
+                for (int i = 0; i < host.Length; i++) built[i] = built[host[i]];
                 foreach (var spec in layout.statics) BlenderStatic(part, spec, shapes);
                 foreach (var j in layout.joints)
                 {
+                    if (j.b >= 0 && host[j.a] == host[j.b]) continue;
                     var a = built[j.a].Body;
                     var b = j.b >= 0 ? built[j.b].Body : anchor;
                     var at = part.TransformPoint(j.at);
@@ -180,19 +184,55 @@ namespace DeadlyJenga.CastlePrototype
                 }
         }
 
-        GingerbreadPiece BlenderBody(Transform part, BodySpec spec, List<(Mesh mesh, int[] finishes)> shapes)
+        // Light ornaments (3 kg or less) glued to a much heavier piece ride on that piece as part of
+        // its body. As separate bodies they shook their glue loose at rest.
+        static int[] OrnamentHosts(LayoutSpec layout)
         {
+            var bodies = layout.bodies; var host = new int[bodies.Length];
+            for (int i = 0; i < host.Length; i++) host[i] = i;
+            for (int i = 0; i < host.Length; i++)
+            {
+                if (bodies[i].mass > 3) continue;
+                int best = -1;
+                foreach (var j in layout.joints)
+                {
+                    if (j.b < 0) continue;
+                    int other = j.a == i ? j.b : j.b == i ? j.a : -1;
+                    if (other < 0 || bodies[other].mass < 10 * bodies[i].mass) continue;
+                    if (best < 0 || bodies[other].mass > bodies[best].mass) best = other;
+                }
+                if (best >= 0) host[i] = best;
+            }
+            for (int i = 0; i < host.Length; i++) while (host[host[i]] != host[i]) host[i] = host[host[i]];
+            return host;
+        }
+
+        GingerbreadPiece BlenderBody(Transform part, BodySpec[] all, int index, int[] host, List<(Mesh mesh, int[] finishes)> shapes)
+        {
+            var spec = all[index];
             var go = new GameObject(spec.name) { layer = Layers.Block };
             go.transform.SetParent(part, false); go.transform.localPosition = spec.p;
             var rb = go.AddComponent<Rigidbody>();
-            rb.mass = Mathf.Max(.5f, spec.mass); rb.isKinematic = replica;
+            float mass = 0;
+            for (int i = 0; i < all.Length; i++) if (host[i] == index) mass += all[i].mass;
+            rb.mass = Mathf.Max(.5f, mass); rb.isKinematic = replica;
             rb.solverIterations = 16; rb.solverVelocityIterations = 6; rb.maxDepenetrationVelocity = .8f;
             var piece = go.AddComponent<GingerbreadPiece>(); piece.rigid = rb;
+            piece.art = new GameObject("Visual").transform; piece.art.SetParent(go.transform, false);
+            for (int i = 0; i < all.Length; i++)
+                if (host[i] == index) AddParts(piece, all[i], all[i].p - spec.p, shapes);
+            pieces.Add(rb);
+            return piece;
+        }
+
+        void AddParts(GingerbreadPiece piece, BodySpec spec, Vector3 shift, List<(Mesh mesh, int[] finishes)> shapes)
+        {
+            var go = piece.gameObject;
             foreach (var box in spec.boxes)
             {
                 var shape = new GameObject("Shape") { layer = Layers.Block };
                 shape.transform.SetParent(go.transform, false);
-                shape.transform.localPosition = box.p;
+                shape.transform.localPosition = box.p + shift;
                 shape.transform.localRotation = Quaternion.LookRotation(box.forward, box.up);
                 var col = shape.AddComponent<BoxCollider>(); col.size = box.size;
                 Shape(piece, col);
@@ -200,14 +240,11 @@ namespace DeadlyJenga.CastlePrototype
             foreach (int h in spec.hulls)
             {
                 var shape = new GameObject("Hull") { layer = Layers.Block };
-                shape.transform.SetParent(go.transform, false);
+                shape.transform.SetParent(go.transform, false); shape.transform.localPosition = shift;
                 var col = shape.AddComponent<MeshCollider>(); col.convex = true; col.sharedMesh = shapes[h].mesh;
                 Shape(piece, col);
             }
-            piece.art = new GameObject("Visual").transform; piece.art.SetParent(go.transform, false);
-            foreach (int v in spec.visuals) Art(piece.art, shapes[v]);
-            pieces.Add(rb);
-            return piece;
+            foreach (int v in spec.visuals) Art(piece.art, shapes[v]).localPosition = shift;
         }
 
         void Shape(GingerbreadPiece piece, Collider col)
@@ -228,13 +265,14 @@ namespace DeadlyJenga.CastlePrototype
             Art(go.transform, shapes[spec.visual]);
         }
 
-        void Art(Transform owner, (Mesh mesh, int[] finishes) art)
+        Transform Art(Transform owner, (Mesh mesh, int[] finishes) art)
         {
             var go = new GameObject("Art"); go.transform.SetParent(owner, false);
             go.AddComponent<MeshFilter>().sharedMesh = art.mesh;
             var mats = new Material[art.finishes.Length];
             for (int i = 0; i < mats.Length; i++) mats[i] = finishes[Mathf.Clamp(art.finishes[i], 0, finishes.Length - 1)];
             go.AddComponent<MeshRenderer>().sharedMaterials = mats;
+            return go.transform;
         }
 
         List<(Mesh, int[])> ReadBlenderMeshes(byte[] bytes)
