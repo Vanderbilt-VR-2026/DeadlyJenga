@@ -354,7 +354,8 @@ for n in list(members):
 if os.environ.get('SJ_EXPORT'):
     sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
     import sj_unity_export
-    sj_unity_export.export(os.environ['SJ_EXPORT'], members, sources, FR, dg, islands, RAIL_PART_IDS)
+    FIXED = {n for n in members if is_fixed(n, members[n])}
+    sj_unity_export.export(os.environ['SJ_EXPORT'], members, sources, FR, dg, islands, RAIL_PART_IDS, FIXED)
     sys.exit(0)
 
 # ---------------------------------------------------------------- bodies
