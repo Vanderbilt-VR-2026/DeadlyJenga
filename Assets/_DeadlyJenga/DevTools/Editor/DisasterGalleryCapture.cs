@@ -357,7 +357,8 @@ namespace DeadlyJenga.DevTools.Editor
             // Stand on open ground (or the water line) outside the castle, not on top of blocks.
             // World.Radius can be smaller than the built castle, so measure the blocks along the view line.
             Vector3 away = new Vector3(.6f, 0, -1).normalized; float reach = r;
-            foreach (var block in world.Blocks) if (block) reach = Mathf.Max(reach, Vector3.Dot(block.position - world.Center, away));
+            foreach (var block in Physics.OverlapSphere(world.Center, 80, 1 << Layers.Block, QueryTriggerInteraction.Ignore))
+                reach = Mathf.Max(reach, Vector3.Dot(block.bounds.center - world.Center, away) + block.bounds.extents.magnitude);
             Vector3 eye = world.Center + away * (reach + 9);
             if (Physics.Raycast(eye + Vector3.up * 50, Vector3.down, out var hit, 120, 1 << Layers.Surface)) eye = hit.point;
             else { float water = world.WaterHeight(eye); eye.y = float.IsFinite(water) ? water : world.Center.y; }

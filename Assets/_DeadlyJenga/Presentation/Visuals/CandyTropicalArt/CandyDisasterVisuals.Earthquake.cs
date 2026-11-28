@@ -17,7 +17,7 @@ namespace DeadlyJenga.CandyArt
             public bool land;
         }
         readonly QuakeSample[] quakeSamples=new QuakeSample[QuakeGrid*QuakeGrid];
-        readonly List<Matrix4x4> quakeDust=new List<Matrix4x4>(192),quakeSpray=new List<Matrix4x4>(48),
+        readonly List<Matrix4x4> quakeDust=new List<Matrix4x4>(272),quakeSpray=new List<Matrix4x4>(48),
             quakeRipples=new List<Matrix4x4>(QuakeRippleLimit);
         readonly float[] quakeRippleOpacity=new float[QuakeRippleLimit];
         IWorldQuery quakeWorld;
@@ -153,6 +153,26 @@ namespace DeadlyJenga.CandyArt
                 float since=cycleAge-QuakeFrontArrival(sample.point,quakeBounds)-(Hash(i+389)-.5f)*.20f;
                 DrawQuakeSample(i,sample,since,strength);
                 DrawQuakeSample(i,sample,since-QuakeAftershock,strength*.52f);
+            }
+            QuakeBlockDust(cycleAge,strength);
+            QuakeBlockDust(cycleAge-QuakeAftershock,strength*.6f);
+        }
+
+        // Dust shaken off the castle's blocks as the shock front passes them.
+        void QuakeBlockDust(float cycleAge,float strength)
+        {
+            var blocks=quakeWorld.Blocks;
+            if(blocks==null||cycleAge<=0)return;
+            int step=Mathf.Max(1,blocks.Count/90);
+            for(int i=0;i<blocks.Count&&quakeDust.Count<260;i+=step)
+            {
+                var block=blocks[i];
+                if(!block)continue;
+                float since=cycleAge-QuakeFrontArrival(block.position,quakeBounds)-Hash(i+611)*.3f;
+                if(since<=0||since>=1.5f)continue;
+                float life=since/1.5f;
+                float width=(.9f+.9f*Hash(i+7))*Mathf.Sin(Mathf.PI*life)*strength;
+                Puff(quakeDust,block.position+Vector3.down*(.2f+life*1.1f)+QuakeDirection*life*.6f,width*1.7f,width*1.15f,i*13);
             }
         }
 
