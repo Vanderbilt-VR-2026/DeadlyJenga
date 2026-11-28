@@ -154,11 +154,14 @@ namespace DeadlyJenga.CastlePrototype
                 Beam(new(0,.75f,end*2.75f),new(0,7.3f,-end*2.75f),.27f,.27f,Dark);
             }
             var platformBent=End();
+            if (structure != null && structure.Has(TownMarker)) anchored.Add(platformBent);   // braced into the baked depot
             Begin("Depot boarding platform",-16.35f,10.68f,12.2f);
             Box(0,0,0,3.2f,.44f,7.15f,Wood);
             for(int j=-4;j<=4;j++) Box(0,.231f,j*.81f,3.2f,.05f,.79f,Honey,false);
             foreach(int end in new[]{-1,1}) Round(0,.255f,end*2.75f,.14f,.035f,.14f,Iron);
-            Fasten(End(),platformBent);
+            var platform=End();
+            Fasten(platform,platformBent);
+            if (structure != null && structure.Has(TownMarker)) anchored.Add(platform);
             Stairs("Depot boarding stair",-8.74f,2.5f,14.38f,2.3f,8.4f,12,-90);
         }
         int Section(float d)

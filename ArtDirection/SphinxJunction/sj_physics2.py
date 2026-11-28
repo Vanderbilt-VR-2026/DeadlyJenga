@@ -160,6 +160,14 @@ for orig, name, M, own in todo:
             members.setdefault(f'{name} block {k}', []).append((V, P))
             sources.setdefault(f'{name} block {k}', []).append((orig, M, k))
     else:
+        if own.startswith(('Plaza paving', 'Plaza approach', 'Causeway span')):
+            # walkable slabs bear on flat boxes (Unity's code-built paving used box colliders), not their bevelled art
+            boxed = []
+            for V, P in parts:
+                lo = [min(v[i] for v in V) for i in range(3)]; hi = [max(v[i] for v in V) for i in range(3)]
+                BV = [Vector((x, y, z)) for x in (lo[0], hi[0]) for y in (lo[1], hi[1]) for z in (lo[2], hi[2])]
+                boxed.append((BV, [(0, 1, 3, 2), (4, 6, 7, 5), (0, 4, 5, 1), (2, 3, 7, 6), (0, 2, 6, 4), (1, 5, 7, 3)]))
+            parts = boxed
         members.setdefault(own, []).extend(parts)
         sources.setdefault(own, []).append((orig, M, None))
 # Unity gives each rail span one box collider, 4.04 x 0.31 x (length - 0.06), centred on its segment
