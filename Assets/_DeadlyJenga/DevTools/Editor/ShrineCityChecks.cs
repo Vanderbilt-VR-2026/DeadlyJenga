@@ -190,7 +190,7 @@ namespace DeadlyJenga.DevTools.Editor
                 for (float end = Time.time + 20; Time.time < end; waited += Time.deltaTime)
                 {
                     var p = session.Player;
-                    if (p && NetworkActors.Alive(p) && Vector3.Distance(p.transform.position, lake) > 5) break;
+                    if (p != null && NetworkActors.Alive(p) && Vector3.Distance(p.transform.position, lake) > 5) break;
                     yield return null;
                 }
                 yield return Wait(.5f);
