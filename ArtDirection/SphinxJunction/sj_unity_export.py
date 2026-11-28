@@ -156,6 +156,29 @@ def export(path, members, sources, frame_matrix, dg, islands, rail_parts=frozens
                 for p in Pp:
                     for j in range(1, len(p) - 1):
                         tris.append((p[0], p[j + 1], p[j], (0, 0, 0)))
+                solid_like = False
+                if n == 'Pyramid podium and hall floor':
+                    # box-like foundation pieces (floor slabs, plinths) take convex colliders, which queries hit
+                    # reliably; only truly concave pieces (door frames, walls with openings) stay concave
+                    import bmesh as _bm
+                    b_ = _bm.new()
+                    for v in Vp:
+                        b_.verts.new(v)
+                    b_.verts.ensure_lookup_table()
+                    for p in Pp:
+                        try:
+                            b_.faces.new([b_.verts[i] for i in p])
+                        except ValueError:
+                            pass
+                    vol = abs(b_.calc_volume())
+                    h_ = _bm.new()
+                    for v in Vp:
+                        h_.verts.new(v)
+                    _bm.ops.convex_hull(h_, input=h_.verts[:])
+                    hv = abs(h_.calc_volume()); b_.free(); h_.free()
+                    solid_like = hv > 1e-6 and vol / hv > 0.9
+                    if solid_like:
+                        count += sum(write_part(f, 2, verts, tris)); continue
                 if n == 'Pyramid podium and hall floor':
                     # concave colliders are one-sided and the art's winding is not consistent: add a reversed copy of
                     # every face, 2 mm behind it so mesh cooking does not merge it away as a duplicate

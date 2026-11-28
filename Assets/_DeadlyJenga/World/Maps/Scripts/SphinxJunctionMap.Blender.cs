@@ -182,8 +182,9 @@ namespace DeadlyJenga.CastlePrototype
                     // In the baked town a piece resting on top of another keeps its bearing contact, and nothing
                     // stops touching the fixed foundation, piles or braced rail (the Blender test never ignores them).
                     if (town && (bounds.min.y > boundsByCollider[j].max.y - .14f || boundsByCollider[j].min.y > bounds.max.y - .14f)) continue;
-                    if (town && (firstBody && (firstBody.isKinematic || anchored.Contains(firstBody)) ||
-                                 secondBody && (secondBody.isKinematic || anchored.Contains(secondBody)))) continue;
+                    // the baked foundation and piles were designed against in Blender; braced code-built rail was not
+                    if (town && (firstBody && firstBody.isKinematic && bakedMembers.Contains(firstBody) ||
+                                 secondBody && secondBody.isKinematic && bakedMembers.Contains(secondBody))) continue;
                     if (!Penetration(first, second, out float depth) || depth < .021f) continue;
                     Physics.IgnoreCollision(first, second);
                     authoredSeams.Add((first, second));
