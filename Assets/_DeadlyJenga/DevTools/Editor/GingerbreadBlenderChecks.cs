@@ -31,7 +31,8 @@ namespace DeadlyJenga.DevTools.Editor
         static GingerbreadPiece pulled;
         static Vector3 grab;
         static List<GingerbreadPiece> pullList;
-        static int pullIndex;
+        static int pullIndex, shots;
+        static Vector3 benBase, keepBase;
 
         static GingerbreadBlenderChecks() { EditorApplication.playModeStateChanged += State; }
 
@@ -116,7 +117,8 @@ namespace DeadlyJenga.DevTools.Editor
                 if (phase == 1 && dt > .05f) { Street("01-authored-street"); phase++; return; }
                 if (phase == 2 && dt > 10f) { Settled(); clock = Time.fixedTime; phase++; return; }
                 if (phase == 3) { if (Pull(dt)) { clock = Time.fixedTime; phase++; } return; }
-                if (phase == 4 && dt > 6f) { Collapsed(); Respawn(); End(); }
+                if (phase == 4) { if (dt >= shots * .5f) { Blasts(); shots++; } if (shots >= 6) { clock = Time.fixedTime; phase++; } return; }
+                if (phase == 5 && dt > 6f) { Collapsed(); Respawn(); End(); }
             }
             catch (Exception e)
             {
@@ -151,7 +153,11 @@ namespace DeadlyJenga.DevTools.Editor
             keepTop = keep.Count > 0 ? keep.OrderByDescending(p => p.Body.position.y).First().Body : null;
             if (keepTop) keepTopBefore = keepTop.position;
             pullList = ben.OrderBy(p => p.Body.worldCenterOfMass.y).Take(4).ToList();
-            pullIndex = 0; pulled = null;
+            pullIndex = 0; pulled = null; shots = 0;
+            benBase = ben.OrderBy(p => p.Body.worldCenterOfMass.y).First().Body.worldCenterOfMass;
+            benBase.y = 1.2f; benBase += Vector3.back * 2.5f;
+            keepBase = keep.Count > 0 ? keep.OrderBy(p => p.Body.worldCenterOfMass.y).First().Body.worldCenterOfMass : benBase;
+            keepBase += Vector3.back * 2.5f;
             jointsBefore = map.GetComponentsInChildren<FixedJoint>().Length;
         }
 
@@ -161,10 +167,6 @@ namespace DeadlyJenga.DevTools.Editor
             {
                 if (pullIndex >= pullList.Count)
                 {
-                    foreach (var p in Pieces.Where(p => p.name.StartsWith("Great keep")).OrderBy(p => p.Body.position.y).Take(6))
-                        p.Push(Vector3.back * 8, camera.gameObject);
-                    foreach (var p in Pieces.Where(p => p.name.StartsWith("Big Ben")).OrderBy(p => p.Body.position.y).Take(3))
-                        p.Push(Vector3.right * 8, camera.gameObject);
                     return true;
                 }
                 pulled = pullList[pullIndex]; grab = pulled.Body.worldCenterOfMass; clock = Time.fixedTime;
@@ -179,14 +181,26 @@ namespace DeadlyJenga.DevTools.Editor
             return false;
         }
 
+        // One blaster shot: the same push and falloff MatchModeRuntime.Blaster gives every block in range.
+        static void Blast(Vector3 point, float radius)
+        {
+            foreach (var p in Pieces)
+            {
+                var delta = p.Body.worldCenterOfMass - point; float distance = delta.magnitude;
+                if (distance > radius) continue;
+                p.Push((delta.normalized + Vector3.up * .2f) * Mathf.Lerp(4, 1, distance / radius), camera.gameObject);
+            }
+        }
+        static void Blasts() { Blast(benBase, 6); Blast(keepBase, 6); }
+
         static void Collapsed()
         {
             float benDrop = benTopBefore.y - benTop.position.y;
-            Check(benDrop > 1f, "Big Ben top falls after support pull and push: drop " + benDrop.ToString("F2") + " m");
+            Check(benDrop > 1f, "Big Ben top falls after hand pulls and 6 blaster shots: drop " + benDrop.ToString("F2") + " m");
             if (keepTop)
             {
                 float keepDrop = keepTopBefore.y - keepTop.position.y;
-                Check(keepDrop > 1f, "castle keep top falls after base pushes: drop " + keepDrop.ToString("F2") + " m");
+                Check(keepDrop > 1f, "castle keep top falls after 6 blaster shots: drop " + keepDrop.ToString("F2") + " m");
             }
             else Check(false, "castle keep pieces present");
             int joints = map.GetComponentsInChildren<FixedJoint>().Length;
@@ -226,20 +240,23 @@ namespace DeadlyJenga.DevTools.Editor
             if (!survivor) { Check(false, label + ": survivor present"); return; }
             // Tall box faces that start near the street and face the open town.
             var faces = candidates.SelectMany(p => p.Shapes.OfType<BoxCollider>().Select(c => (p, c)))
-                .Where(x => x.c.bounds.min.y < .8f && x.c.bounds.size.y > 2.2f)
-                .OrderBy(x => Vector3.Distance(x.c.bounds.center, map.SafeSpawnPoint())).Take(12).ToList();
-            float best = 0; string where = "none";
+                .Where(x => x.c.bounds.min.y < 1.2f && x.c.bounds.size.y > 1.2f)
+                .OrderBy(x => Vector3.Distance(x.c.bounds.center, map.SafeSpawnPoint())).Take(40).ToList();
+            float best = 0; string where = "none"; int hits = 0, tries = 0, latches = 0;
+            survivor.InputSuspended = false;
             foreach (var (piece, col) in faces)
             {
                 foreach (var dir in new[] { Vector3.forward, Vector3.back, Vector3.left, Vector3.right })
                 {
-                    var start = new Vector3(col.bounds.center.x, col.bounds.min.y + 1f, col.bounds.center.z) - dir * 6;
-                    if (!col.Raycast(new Ray(start, dir), out var hit, 8) || Mathf.Abs(hit.normal.y) > .3f) continue;
+                    var start = new Vector3(col.bounds.center.x, col.bounds.min.y + .9f, col.bounds.center.z) - dir * 8;
+                    if (!col.Raycast(new Ray(start, dir), out var hit, 10) || Mathf.Abs(hit.normal.y) > .3f) continue;
+                    hits++;
                     var outward = Vector3.ProjectOnPlane(hit.normal, Vector3.up).normalized;
-                    var feet = hit.point + outward * (.36f) - Vector3.up * 1f;
-                    if (Physics.CheckCapsule(feet + Vector3.up * .4f, feet + Vector3.up * 1.6f, .28f, ~((1 << Layers.Survivor) | (1 << Layers.Surface)), QueryTriggerInteraction.Ignore)) continue;
+                    var feet = hit.point + outward * (survivor.Capsule.radius + .065f) - Vector3.up * (survivor.Height * .64f);
+                    if (Physics.Raycast(feet + Vector3.up * .5f, Vector3.down, out var floor, 2f, ~((1 << Layers.Survivor) | (1 << Layers.Surface)), QueryTriggerInteraction.Ignore))
+                        feet.y = Mathf.Max(feet.y, floor.point.y);
+                    tries++;
                     survivor.Place(feet, Quaternion.LookRotation(-outward));
-                    survivor.externallyDriven = true;
                     bool latched = false; float top = feet.y;
                     for (int i = 0; i < 300; i++)
                     {
@@ -247,12 +264,13 @@ namespace DeadlyJenga.DevTools.Editor
                         latched |= survivor.Climbing;
                         top = Mathf.Max(top, survivor.transform.position.y);
                     }
-                    survivor.externallyDriven = false;
+                    if (latched) latches++;
                     if (latched && top - feet.y > best) { best = top - feet.y; where = piece.name; }
                     if (best >= needRise) break;
                 }
                 if (best >= needRise) break;
             }
+            Note("  " + label + ": " + faces.Count + " faces, " + hits + " wall hits, " + tries + " tries, " + latches + " latched");
             Check(best >= needRise, label + ": survivor latched and climbed " + best.ToString("F2") + " m on " + where);
             // Climbing moves pieces slightly; put the survivor back on the street.
             survivor.Place(map.SafeSpawnPoint(), Quaternion.identity);

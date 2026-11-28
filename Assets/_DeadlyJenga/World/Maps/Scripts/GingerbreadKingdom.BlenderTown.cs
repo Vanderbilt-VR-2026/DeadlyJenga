@@ -22,6 +22,9 @@ namespace DeadlyJenga.CastlePrototype
             ("GingerbreadPhysicsBigBen", Vector3.zero),
         };
         const float SettleSeconds = 1.5f;
+        // Glue holds about this many times the lighter piece's weight, so it carries the
+        // pieces at rest but breaks under blasts, pushes and hand pulls.
+        const float GlueStrength = 15f;
 
         [Serializable] sealed class BoxSpec { public Vector3 p, size, forward, up; }
         [Serializable] sealed class BodySpec { public string name; public float mass; public Vector3 p; public BoxSpec[] boxes; public int[] hulls, visuals; }
@@ -59,6 +62,8 @@ namespace DeadlyJenga.CastlePrototype
                 if (!layoutAsset || !meshAsset) { Debug.LogWarning("Missing Blender physics file " + file); continue; }
                 var layout = JsonUtility.FromJson<LayoutSpec>(layoutAsset.text);
                 var part = Group(file, town, offset);
+                // The castle and Big Ben were tested in Blender on a flat floor at street level.
+                if (!first) Foundation(part, layout.bodyMin, layout.bodyMax);
                 var shapes = ReadBlenderMeshes(meshAsset.bytes);
                 var built = new List<GingerbreadPiece>();
                 foreach (var spec in layout.bodies) built.Add(BlenderBody(part, spec, shapes));
@@ -75,7 +80,9 @@ namespace DeadlyJenga.CastlePrototype
                     joint.connectedAnchor = b.transform.InverseTransformPoint(at);
                     joint.enableCollision = false; joint.enablePreprocessing = false;
                     // Blender breaks glue on impulse per substep; PhysX breaks on force.
-                    float force = j.impulse * layout.blenderHz;
+                    // Never stronger than Blender, and weak enough for gameplay to break.
+                    float lighter = j.b >= 0 ? Mathf.Min(a.mass, b.mass) : a.mass;
+                    float force = Mathf.Min(j.impulse * layout.blenderHz, GlueStrength * 9.81f * lighter);
                     joint.breakForce = joint.breakTorque = float.PositiveInfinity;
                     blenderGlue.Add(new Glue { joint = joint, force = force });
                 }
@@ -92,13 +99,19 @@ namespace DeadlyJenga.CastlePrototype
                 blenderSpawn = transform.InverseTransformPoint(hit.point);
         }
 
+        void Foundation(Transform part, Vector3 lo, Vector3 hi)
+        {
+            var slab = Group("Flat foundation", part, V((lo.x + hi.x) * .5f, -.5f, (lo.z + hi.z) * .5f));
+            slab.gameObject.AddComponent<BoxCollider>().size = V(hi.x - lo.x + 12, 1, hi.z - lo.z + 12);
+        }
+
         void FinishBlenderSettle()
         {
             // Joints cannot break while the freshly built town settles its first contacts.
             if (!builtBlender || blenderSettledAt <= 0 || Time.time < blenderSettledAt) return;
             blenderSettledAt = 0;
             foreach (var g in blenderGlue)
-                if (g.joint) { g.joint.breakForce = g.force; g.joint.breakTorque = g.force; }
+                if (g.joint) { g.joint.breakForce = g.force; g.joint.breakTorque = g.force * .75f; }
         }
 
         GingerbreadPiece BlenderBody(Transform part, BodySpec spec, List<(Mesh mesh, int[] finishes)> shapes)
