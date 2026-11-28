@@ -192,11 +192,13 @@ namespace DeadlyJenga.DevTools.Editor
                 p.Push((delta.normalized + Vector3.up * .2f) * Mathf.Lerp(4, 1, distance / radius), camera.gameObject);
             }
         }
-        // A player shooting a tower aims along its height, so Big Ben takes shots at 1, 12 and 22 m.
+        // A player shooting a tower aims along its height: Big Ben takes shots at 1, 12 and 22 m,
+        // the castle keep at its base and 10 and 20 m above it.
         static void Blasts()
         {
             Blast(benBase, 6); Blast(keepBase, 6);
             Blast(new Vector3(benBase.x, 12, benBase.z), 6); Blast(new Vector3(benBase.x, 22, benBase.z), 6);
+            Blast(keepBase + Vector3.up * 10, 6); Blast(keepBase + Vector3.up * 20, 6);
         }
 
         // The match's own earthquake disaster, launched the way the demo menu launches it.
@@ -217,7 +219,7 @@ namespace DeadlyJenga.DevTools.Editor
             if (keepTop)
             {
                 float keepDrop = keepTopBefore.y - keepTop.position.y;
-                Check(keepDrop > 1f, "castle keep top falls after 6 blaster shots and an earthquake: drop " + keepDrop.ToString("F2") + " m");
+                Check(keepDrop > 1f, "castle keep top falls after 6 blaster volleys up the keep and an earthquake: drop " + keepDrop.ToString("F2") + " m");
             }
             else Check(false, "castle keep pieces present");
             int joints = map.GetComponentsInChildren<FixedJoint>().Length;
