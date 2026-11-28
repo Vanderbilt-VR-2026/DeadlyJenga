@@ -305,6 +305,7 @@ namespace DeadlyJenga.DevTools.Editor
                 GameEvents.HazardEnded -= OnHazardEnded;
                 // The Planet Killer ends on impact: shoot the blast just after it lands.
                 if (kind == "PlanetKillerMeteor") { File.AppendAllText(Report, "  impact seen=" + hazardEnded + "\n"); yield return new WaitForSecondsRealtime(.7f); }
+                if (kind == "Earthquake") LogQuakeState();
                 PhasePair(session, kind, "2-peak", r); frames += 2;
                 // Aftermath: stopped; residue (charred blocks, puddles, smoke) and cleanup.
                 DemoDisasters.StopAll(session);
@@ -322,6 +323,24 @@ namespace DeadlyJenga.DevTools.Editor
 
         // Starts a disaster the way game modes do (ExecuteForMode is not gated by the shared demo-controls policy),
         // with an explicit warning time.
+        // Reports what the earthquake art is drawing, so a blank frame can be told apart from bad timing.
+        static void LogQuakeState()
+        {
+            const BindingFlags any = BindingFlags.Instance | BindingFlags.NonPublic | BindingFlags.Public;
+            foreach (var art in Object.FindObjectsByType<CandyDisasterVisuals>(FindObjectsSortMode.None))
+            {
+                var t = typeof(CandyDisasterVisuals);
+                object Get(string name) => t.GetField(name, any)?.GetValue(art);
+                var dust = Get("quakeDust") as System.Collections.ICollection;
+                File.AppendAllText(Report, $"  quake art: probes={Get("quakeProbes")} seen={Get("quakeSeen")} dust={dust?.Count} bounds={Get("quakeBounds")} enabled={art.isActiveAndEnabled}\n");
+            }
+            foreach (var state in DisasterStates.Active)
+            {
+                var f = state.Capture(); if (f == null) continue;
+                File.AppendAllText(Report, $"  frame {f.kind}: age={f.age:0.00} warning={f.warning:0.00} remaining={f.remaining:0.00} values={(f.values == null ? "null" : string.Join(",", f.values))}\n");
+            }
+        }
+
         static bool hazardEnded;
         static void OnHazardEnded(HazardType type, Vector3 position) => hazardEnded = true;
 
