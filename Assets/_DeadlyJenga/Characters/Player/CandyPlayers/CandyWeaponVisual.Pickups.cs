@@ -30,6 +30,19 @@ namespace DeadlyJenga.CandyPlayers
                         material && material.HasProperty("_BaseColor") ? material.GetColor("_BaseColor") : Color.white;
                     parts.Add(new EquipmentModelPart{mesh=mesh.sharedMesh,material=material,local=model.worldToLocalMatrix*renderer.transform.localToWorldMatrix,color=color});
                 }
+                // Skinned parts (the Iron Suit, posed weapon pieces) are baked into still meshes, so the pickup
+                // shows the real model instead of falling back to the icon.
+                foreach(var skinned in model.GetComponentsInChildren<SkinnedMeshRenderer>())
+                {
+                    if(!skinned.enabled||!skinned.sharedMesh)continue;
+                    var baked=new Mesh{name=skinned.sharedMesh.name+" (pickup)"};skinned.BakeMesh(baked,true);
+                    var material=skinned.sharedMaterial;
+                    var block=new MaterialPropertyBlock();skinned.GetPropertyBlock(block);
+                    var color=block.HasColor("_BaseColor") ? block.GetColor("_BaseColor") :
+                        material && material.HasProperty("_BaseColor") ? material.GetColor("_BaseColor") : Color.white;
+                    parts.Add(new EquipmentModelPart{mesh=baked,material=material,
+                        local=model.worldToLocalMatrix*Matrix4x4.TRS(skinned.transform.position,skinned.transform.rotation,Vector3.one),color=color});
+                }
                 EquipmentModelData.Parts[value]=parts.ToArray();model.gameObject.SetActive(false);Object.Destroy(model.gameObject);
             }
             barrel=rotor=null;barrelInitialized=false;
